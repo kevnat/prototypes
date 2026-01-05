@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: Pay By Link Public API
+  description: Public API for managing payment links
+  version: 1.0.0
+  contact:
+    name: BillingPlatform
+servers:
+  - url: https://{domainName}.billingplatform.com/{orgName}/paybylink/1.0/publicapi
+    description: Production server
+    variables:
+      orgName:
+        default: default
+        description: Organization name
+      domainName:
+        default: default
+        description: Domain name
+paths:
+  /payment-links/{paymentLinkId}:
+    get:
+      summary: Get payment link by ID
+      description: Retrieves a payment link by its unique identifier
+      operationId: getPaymentLink
+      tags:
+        - Payment Links
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          description: Organization name
+          schema:
+            type: string
+          example: acme-corp
+        - name: paymentLinkId
+          in: path
+          required: true
+          description: Unique identifier of the payment link
+          schema:
+            type: integer
+            format: int64
+          example: 12345
+      responses:
+        '200':
+          description: Payment link retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLinkResponse'
+        '404':
+          description: Payment link not found
+        '500':
+          description: Internal server error
+    put:
+      summary: Update payment link
+      description: Updates an existing payment link with new amount and tax information
+      operationId: updatePaymentLink
+      tags:
+        - Payment Links
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          description: Organization name
+          schema:
+            type: string
+          example: acme-corp
+        - name: paymentLinkId
+          in: path
+          required: true
+          description: Unique identifier of the payment link
+          schema:
+            type: integer
+            format: int64
+          example: 12345
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentLinkRequest'
+      responses:
+        '200':
+          description: Payment link updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLinkResponse'
+        '404':
+          description: Payment link not found
+        '400':
+          description: Invalid request body
+        '500':
+          description: Internal server error
+    delete:
+      summary: Delete payment link
+      description: Deletes a payment link by its unique identifier
+      operationId: deletePaymentLink
+      tags:
+        - Payment Links
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          description: Organization name
+          schema:
+            type: string
+          example: acme-corp
+        - name: paymentLinkId
+          in: path
+          required: true
+          description: Unique identifier of the payment link
+          schema:
+            type: integer
+            format: int64
+          example: 12345
+      responses:
+        '204':
+          description: Payment link deleted successfully
+        '404':
+          description: Payment link not found
+        '500':
+          description: Internal server error
+  /payment-links:
+    post:
+      summary: Create payment link
+      description: Creates a new payment link for an account and optionally an invoice
+      operationId: createPaymentLink
+      tags:
+        - Payment Links
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          description: Organization name
+          schema:
+            type: string
+          example: acme-corp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentLinkRequest'
+      responses:
+        '201':
+          description: Payment link created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLinkResponse'
+        '404':
+          description: Account or invoice not found
+        '400':
+          description: Invalid request body
+        '500':
+          description: Internal server error
+  /accounts/{accountId}/payment-links:
+    get:
+      summary: Get payment links for account
+      description: Retrieves all payment links associated with a specific account, with optional filtering
+      operationId: getPaymentLinksForAccount
+      tags:
+        - Payment Links
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          description: Organization name
+          schema:
+            type: string
+          example: acme-corp
+        - name: accountId
+          in: path
+          required: true
+          description: Unique identifier of the account
+          schema:
+            type: integer
+            format: int64
+          example: 67890
+        - name: has_invoice
+          in: query
+          required: false
+          description: Filter payment links by invoice association
+          schema:
+            type: boolean
+          example: true
+        - name: creation_source
+          in: query
+          required: false
+          description: Filter payment links by creation source
+          schema:
+            type: string
+          example: api_created
+      responses:
+        '200':
+          description: Payment links retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentLinkResponse'
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
+components:
+  schemas:
+    PaymentLinkResponse:
+      type: object
+      description: Response object containing payment link details
+      properties:
+        paymentLinkId:
+          type: string
+          description: Unique identifier of the payment link
+          example: "12345"
+        paymentLink:
+          type: string
+          description: The actual payment link URL
+          example: "https://dev.billingplatform.com/dev/payByLink/?payload=Vml235fqUFn236dxuWmpwVTY4SnZKUDRwallSODJ6bUt4bERFrew35sf235"
+        creationSource:
+          type: string
+          description: Source from which the payment link was created
+          example: "api_created"
+        discountAmount:
+          type: string
+          description: Discount amount applied to the payment
+          example: "10.50"
+        taxAmount:
+          type: string
+          description: Tax amount for the payment
+          example: "5.25"
+    CreatePaymentLinkRequest:
+      type: object
+      description: Request object for creating a new payment link
+      required:
+        - accountId
+      properties:
+        accountId:
+          type: integer
+          format: int64
+          description: Unique identifier of the account
+          example: 67890
+        invoiceId:
+          type: integer
+          format: int64
+          description: Unique identifier of the invoice (optional)
+          nullable: true
+          example: 54321
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount
+          nullable: true
+          example: 100.00
+        discountAmount:
+          type: number
+          format: decimal
+          description: Discount amount to apply
+          nullable: true
+          example: 10.50
+        taxAmount:
+          type: number
+          format: decimal
+          description: Tax amount to apply
+          nullable: true
+          example: 5.25
+    UpdatePaymentLinkRequest:
+      type: object
+      description: Request object for updating an existing payment link
+      properties:
+        amount:
+          type: number
+          format: decimal
+          description: Updated payment amount
+          nullable: true
+          example: 100.00
+        discountAmount:
+          type: number
+          format: decimal
+          description: Updated discount amount
+          nullable: true
+          example: 10.50
+        taxAmount:
+          type: number
+          format: decimal
+          description: Updated tax amount
+          nullable: true
+          example: 5.25
+tags:
+  - name: Payment Links
+    description: Operations for managing payment links
