@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { db } from '../lib/database.js';
+import { config } from '../lib/config.js';
 
-export const useSupabaseComments = (prototypeId) => {
+export const useComments = (prototypeId) => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -9,13 +10,7 @@ export const useSupabaseComments = (prototypeId) => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('prototype_id', prototypeId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await db.getComments(prototypeId);
       setComments(data || []);
     } catch (err) {
       console.error('Error fetching comments:', err);
@@ -31,18 +26,7 @@ export const useSupabaseComments = (prototypeId) => {
         throw new Error('Missing required fields');
       }
 
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([
-          {
-            ...comment,
-            prototype_id: prototypeId,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await db.addComment(prototypeId, comment);
       setComments((prev) => [data, ...prev]);
       return data;
     } catch (err) {
@@ -53,14 +37,7 @@ export const useSupabaseComments = (prototypeId) => {
 
   const updateComment = async (commentId, updates) => {
     try {
-      const { data, error } = await supabase
-        .from('comments')
-        .update(updates)
-        .eq('id', commentId)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await db.updateComment(commentId, updates);
       setComments((prev) =>
         prev.map((comment) => (comment.id === commentId ? data : comment))
       );
@@ -73,12 +50,7 @@ export const useSupabaseComments = (prototypeId) => {
 
   const deleteComment = async (commentId) => {
     try {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-
-      if (error) throw error;
+      await db.deleteComment(commentId);
       setComments((prev) => prev.filter((comment) => comment.id !== commentId));
     } catch (err) {
       console.error('Error deleting comment:', err);
@@ -98,5 +70,9 @@ export const useSupabaseComments = (prototypeId) => {
     updateComment,
     deleteComment,
     refreshComments: fetchComments,
+    databaseProvider: config.database.provider,
   };
 };
+
+// Backward compatibility alias
+export const useSupabaseComments = useComments;

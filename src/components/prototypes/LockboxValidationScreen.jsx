@@ -280,7 +280,7 @@ const LockboxValidationScreen = () => {
     columnHelper.display({
       id: 'select',
       header: 'Select | Actions',
-      size: 150,
+      size: 120,
       cell: ({ row }) => {
         const { type, transactionId, data: itemData } = row.original;
 
@@ -408,7 +408,7 @@ const LockboxValidationScreen = () => {
     columnHelper.accessor('id', {
       id: 'id',
       header: 'ID',
-      size: 180,
+      size: 130,
       cell: ({ row }) => {
         const { type, data: itemData } = row.original;
 
@@ -461,7 +461,7 @@ const LockboxValidationScreen = () => {
     columnHelper.accessor('account', {
       id: 'account',
       header: 'Account Name',
-      size: 180,
+      size: 140,
       cell: ({ row }) => {
         const { type, data: itemData } = row.original;
 
@@ -1087,35 +1087,7 @@ const LockboxValidationScreen = () => {
   };
 
   return (
-    <div className="w-full bg-gray-50 min-h-screen">
-      {/* BILLINGPLATFORM-STYLE HEADER */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-full mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-sm text-gray-600">Lockbox Files</span>
-                <span className="text-sm text-gray-400">|</span>
-                <span className="text-sm font-medium text-gray-900">file-30-11-2025.csv</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                disabled
-                className="px-4 py-2 bg-gray-400 text-white rounded text-sm font-medium cursor-not-allowed opacity-75"
-              >
-                Posted
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN CONTENT */}
-      <div className="max-w-full mx-auto px-6 py-6 space-y-6">
+    <div className="space-y-6">
 
         {/* FILE STATUS OVERVIEW */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -1298,8 +1270,6 @@ const LockboxValidationScreen = () => {
             </div>
           </div>
         </div>
-
-      </div>
 
       {/* MODALS */}
       <MultiEditModal />

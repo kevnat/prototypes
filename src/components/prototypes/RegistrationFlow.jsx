@@ -517,27 +517,13 @@ const RegistrationFlow = () => {
   );
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Gradient with logo */}
-      <div className="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 flex flex-col items-center justify-center text-white p-8">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6 mx-auto">
-            <span className="text-2xl font-bold text-gray-900">$</span>
-          </div>
-          <h1 className="text-red-500 font-bold text-lg mb-2">SANDBOX QA ORG</h1>
-          <p className="text-white text-base">BILLING</p>
-        </div>
-      </div>
-
-      {/* Right side - Form */}
-      <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
-        <div className="w-full max-w-2xl">
-          <div className="bg-white rounded-lg shadow-xl p-8">
-            {currentStep === 'login' && renderLogin()}
-            {currentStep === 'step1' && renderStep1()}
-            {currentStep === 'step2' && renderStep2()}
-            {currentStep === 'success' && renderSuccess()}
-          </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+      <div className="w-full max-w-2xl">
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          {currentStep === 'login' && renderLogin()}
+          {currentStep === 'step1' && renderStep1()}
+          {currentStep === 'step2' && renderStep2()}
+          {currentStep === 'success' && renderSuccess()}
         </div>
       </div>
     </div>
