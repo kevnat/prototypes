@@ -21,7 +21,7 @@ let prototypeData = [
       progress: 90,
       route: '/prototypes/payment-links',
       featured: true,
-      screenshot: '/src/assets/link_profile.png',
+      screenshot: '/images/link_profile.png',
       insights: 'Strong user engagement with 85% completion rate'
     },
     {
@@ -39,7 +39,7 @@ let prototypeData = [
       progress: 5,
       route: '/prototypes/cash-app',
       featured: false,
-      screenshot: '/src/assets/lockdash2.png',
+      screenshot: '/images/lockdash2.png',
       insights: 'Initial wireframes showing promising workflow automation'
     },
     {
@@ -57,7 +57,7 @@ let prototypeData = [
       progress: 60,
       route: '/prototypes/lockbox',
       featured: true,
-      screenshot: '/src/assets/allocation_dashboard.png',
+      screenshot: '/images/allocation_dashboard.png',
       insights: 'Dashboard reduces processing time by 40%'
     },
     // {
@@ -111,7 +111,7 @@ let prototypeData = [
       progress: 100,
       route: '/prototypes/api-docs',
       featured: false,
-      screenshot: '/src/assets/link_api.png',
+      screenshot: '/images/link_api.png',
       insights: 'Documentation completed and deployed to production'
     },
     // ... more prototypes
