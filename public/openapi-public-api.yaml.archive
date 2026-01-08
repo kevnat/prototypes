@@ -6,7 +6,7 @@ info:
   contact:
     name: BillingPlatform
 servers:
-  - url: https://{domainName}.billingplatform.com/{orgName}/paybylink/1.0/publicapi
+  - url: https://{domainName}.billingplatform.com/{orgName}/paybylink/1.0/mgmt
     description: Production server
     variables:
       orgName:
@@ -24,12 +24,6 @@ paths:
       tags:
         - Payment Links
       parameters:
-        - name: sessionid
-          in: header
-          required: true
-          description: session id parameter for auth
-          schema:
-            type: string
         - name: orgName
           in: path
           required: true
@@ -63,12 +57,6 @@ paths:
       tags:
         - Payment Links
       parameters:
-        - name: sessionid
-          in: header
-          required: true
-          description: session id parameter for auth
-          schema:
-            type: string
         - name: orgName
           in: path
           required: true
@@ -110,12 +98,6 @@ paths:
       tags:
         - Payment Links
       parameters:
-        - name: sessionid
-          in: header
-          required: true
-          description: session id parameter for auth
-          schema:
-            type: string
         - name: orgName
           in: path
           required: true
@@ -146,12 +128,6 @@ paths:
       tags:
         - Payment Links
       parameters:
-        - name: sessionid
-          in: header
-          required: true
-          description: session id parameter for auth
-          schema:
-            type: string
         - name: orgName
           in: path
           required: true
@@ -186,12 +162,6 @@ paths:
       tags:
         - Payment Links
       parameters:
-        - name: sessionid
-          in: header
-          required: true
-          description: session id parameter for auth
-          schema:
-            type: string
         - name: orgName
           in: path
           required: true
@@ -252,10 +222,6 @@ components:
           type: string
           description: Source from which the payment link was created
           example: "api_created"
-        quoteId:
-          type: string
-          description: Quote id of the payment link
-          example: "12345"
         discountAmount:
           type: string
           description: Discount amount applied to the payment
@@ -279,12 +245,6 @@ components:
           type: integer
           format: int64
           description: Unique identifier of the invoice (optional)
-          nullable: true
-          example: 54321
-        quoteId:
-          type: integer
-          format: int64
-          description: Unique identifier of the quote (optional)
           nullable: true
           example: 54321
         amount:
