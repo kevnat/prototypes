@@ -6,7 +6,7 @@ info:
   contact:
     name: BillingPlatform
 servers:
-  - url: https://{domainName}.billingplatform.com/{orgName}/paybylink/1.0/publicapi
+  - url: https://{domainName}.billingplatform.com/{orgName}/paybylink/1.0/mgmt
     description: Production server
     variables:
       orgName:
