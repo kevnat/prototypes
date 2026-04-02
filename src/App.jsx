@@ -7,6 +7,7 @@ import CashAppPrototype from './components/prototypes/CashAppPrototype';
 import LockboxPrototype from './components/prototypes/LockboxPrototype';
 import LockboxValidationScreen from './components/prototypes/LockboxValidationScreen';
 import ApiDocsPrototype from './components/prototypes/ApiDocsPrototype';
+import PaymentsOpsDashboard from './components/prototypes/PaymentsOpsDashboard';
 // import AnalyticsDashboard from './components/prototypes/AnalyticsDashboard';
 
 function App() {
@@ -29,6 +30,9 @@ function App() {
         </Route>
         <Route path="/prototypes/lockbox-validation" element={<PrototypeLayout />}>
           <Route index element={<LockboxValidationScreen />} />
+        </Route>
+        <Route path="/prototypes/payments-ops" element={<PrototypeLayout />}>
+          <Route index element={<PaymentsOpsDashboard />} />
         </Route>
         <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
           <Route index element={<ApiDocsPrototype />} />

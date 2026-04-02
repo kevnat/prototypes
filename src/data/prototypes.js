@@ -97,6 +97,24 @@ let prototypeData = [
     //   insights: 'User feedback indicates 90% satisfaction with flow'
     // },
     {
+      id: 'payments-ops',
+      title: 'Payments Operations Dashboard',
+      description: 'Finance dashboard with KPI cards and daily breakdown table for transaction volume, payment method mix, chargebacks, and card approval rates',
+      category: 'Payments',
+      status: 'early',
+      priority: 'high',
+      lastUpdated: '2026-04-01',
+      author: 'Product Team',
+      comments: 0,
+      tags: ['payments', 'finance', 'dashboard', 'kpi', 'chargebacks', 'ach', 'credit-card'],
+      thumbnail: '📈',
+      progress: 20,
+      route: '/prototypes/payments-ops',
+      featured: true,
+      screenshot: '/images/allocation_dashboard.png',
+      insights: 'Single-page finance view with date-range filtering across all payment metrics'
+    },
+    {
       id: 'api-docs',
       title: 'Payment Links API Documentation',
       description: 'Interactive API documentation for the Pay By Link Public API with Swagger UI',
