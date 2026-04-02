@@ -137,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Cursor / Claude local worktrees (often nested git repos — do not add as submodule)
+.claude/

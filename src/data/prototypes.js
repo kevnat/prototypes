@@ -60,6 +60,24 @@ let prototypeData = [
       screenshot: '/images/allocation_dashboard.png',
       insights: 'Dashboard reduces processing time by 40%'
     },
+    {
+      id: 'enhanced-lockbox',
+      title: 'Enhanced Lockbox Processing',
+      description: 'Advanced lockbox processing with AI-powered smart matching and intelligent remainder handling',
+      category: 'Payments',
+      status: 'iteration',
+      priority: 'critical',
+      lastUpdated: '2025-01-26',
+      author: 'Product Team',
+      comments: 0,
+      tags: ['payments', 'lockbox', 'ai', 'smart-matching', 'remainder-handling', 'enhanced'],
+      thumbnail: '🧠',
+      progress: 75,
+      route: '/prototypes/enhanced-lockbox',
+      featured: true,
+      screenshot: '/images/allocation_dashboard.png',
+      insights: 'AI-enhanced matching increases efficiency by 67% with intelligent remainder handling'
+    },
     // {
     //   id: 'lockbox-validation',
     //   title: 'Lockbox Pre-Post Validation',
