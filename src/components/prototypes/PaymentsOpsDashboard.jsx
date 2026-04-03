@@ -159,7 +159,7 @@ function deltaTone(pct, { inverse = false, tiny = 0.1 } = {}) {
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 const Sparkline = ({ data, tone = '' }) => {
   if (!data || data.length < 2) return null;
-  const W = 48, H = 20, pad = 2;
+  const W = 80, H = 20, pad = 2;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -172,7 +172,7 @@ const Sparkline = ({ data, tone = '' }) => {
     .join(' ');
   const color = tone === 'up' ? '#4f7e20' : tone === 'down' ? '#a32d2d' : '#378add';
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', flexShrink: 0 }}>
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', flexShrink: 0, width: '100%' }}>
       <polyline
         points={pts}
         fill="none"
@@ -287,7 +287,7 @@ const MetricDelta = ({ pct, inverse = false, dayCount }) => {
 };
 
 // ─── MetricRow ────────────────────────────────────────────────────────────────
-const MetricRow = ({ label, val, valSub, deltaPct, deltaInverse = false, spark, dayCount, statFmt = fmtKNum }) => {
+const MetricRow = ({ label, labelSub, val, valSub, deltaPct, deltaInverse = false, spark, dayCount, statFmt = fmtKNum }) => {
   const [anchorRect, setAnchorRect] = useState(null);
   const sparkRef = useRef(null);
   const tone = deltaTone(deltaPct, { inverse: deltaInverse });
@@ -301,11 +301,10 @@ const MetricRow = ({ label, val, valSub, deltaPct, deltaInverse = false, spark, 
     <div className="metric-row">
       <div className="metric-label-col">
         <div className="metric-label-name">{label}</div>
-        <div className="metric-label-sub">TBD</div>
+        {labelSub && <div className="metric-label-sub">{labelSub}</div>}
       </div>
       <div className="metric-value-col">
         <div className="metric-value-primary">{val}</div>
-        {valSub && <div className="metric-value-sub">{valSub}</div>}
       </div>
       <MetricDelta pct={deltaPct} inverse={deltaInverse} dayCount={dayCount} />
       <div
@@ -633,40 +632,44 @@ const PaymentsOpsDashboard = () => {
 
             <MetricRow
               label="Transaction Count"
-              val={fmtKNum(heroCnt)}
+              labelSub="All Transactions"
+              val={fmtNum(heroCnt)}
               valSub="Transactions"
               deltaPct={volDelta}
               spark={dailyCntSpark}
               dayCount={dayCount}
-              statFmt={fmtKNum}
+              statFmt={fmtNum}
             />
             <MetricRow
               label="Average Transactions"
-              val={fmtK(avgTxn)}
+              labelSub="Average Payment Amount"
+              val={fmt(avgTxn)}
               valSub="Per transaction"
               deltaPct={pctChange(avgTxn, prevAvgTxn)}
               spark={dailyAvgTxnSpark}
               dayCount={dayCount}
-              statFmt={fmtK}
+              statFmt={fmt}
             />
             <MetricRow
               label="Customer Count"
-              val={fmtKNum(kpis.periodUniqueCustomers)}
+              labelSub="Distinct Customers"
+              val={fmtNum(kpis.periodUniqueCustomers)}
               valSub="Unique in selected period"
               deltaPct={pctChange(kpis.periodUniqueCustomers, prev.periodUniqueCustomers)}
               spark={dailyCustomersSpark}
               dayCount={dayCount}
-              statFmt={fmtKNum}
+              statFmt={fmtNum}
             />
             <MetricRow
-              label="Transactions in Progress"
-              val={fmtK(DEPOSITS_IN_TRANSIT)}
+              label="Deposits in Transit"
+              labelSub="Pending Settlement Amount"
+              val={fmt(DEPOSITS_IN_TRANSIT)}
               valSub="Pending settlement"
               deltaPct={pctChange(heroVol, prevHeroVol)}
               deltaInverse
               spark={dailyVolSpark}
               dayCount={dayCount}
-              statFmt={fmtK}
+              statFmt={fmt}
             />
 
             <div className="section-header">Payment Methods</div>
@@ -674,6 +677,7 @@ const PaymentsOpsDashboard = () => {
             {showACH && (
               <ScoreboardRow
                 name="ACH"
+                nameSub="Direct Debit"
                 cards={[
                   {
                     label: 'Volume',
@@ -702,6 +706,7 @@ const PaymentsOpsDashboard = () => {
             {showCard && (
               <ScoreboardRow
                 name="Card"
+                nameSub="Visa, MC, Disc, AMEX"
                 cards={[
                   {
                     label: 'Volume',
@@ -756,23 +761,23 @@ const PaymentsOpsDashboard = () => {
             />
             <MetricRow
               label="Chargeback Count"
-              val={fmtKNum(kpis.chargebackCount)}
+              val={fmtNum(kpis.chargebackCount)}
               valSub={`${fmtPct(kpis.chargebackRate)} Rate`}
               deltaPct={pctChange(kpis.chargebackCount, prev.chargebackCount)}
               deltaInverse
               spark={dailyCbCountSpark}
               dayCount={dayCount}
-              statFmt={fmtKNum}
+              statFmt={fmtNum}
             />
             <MetricRow
               label="ACH Failures"
-              val={fmtKNum(kpis.achVerificationFailed)}
+              val={fmtNum(kpis.achVerificationFailed)}
               valSub="Pending settlement"
               deltaPct={pctChange(kpis.achVerificationFailed, prev.achVerificationFailed)}
               deltaInverse
               spark={dailyAchVerifSpark}
               dayCount={dayCount}
-              statFmt={fmtKNum}
+              statFmt={fmtNum}
             />
 
             <div className="section-header">Initiation Type</div>

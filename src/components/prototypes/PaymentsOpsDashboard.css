@@ -17,7 +17,7 @@
   font-family: var(--font-sans);
   background: var(--color-bg);
   color: var(--color-text-primary);
-  padding: 16px 24px 40px;
+  padding: 16px 48px 40px;
   min-height: 100vh;
   box-sizing: border-box;
   font-size: 14px;
@@ -231,18 +231,18 @@
   color: var(--color-text-bold);
   padding: 10px 24px 8px;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-surface);
 }
 
 /* ─── Metric rows (4-column) ─────────────────────────────────────── */
 .bp-pay-dash-root .metric-row {
   display: grid;
-  grid-template-columns: 263px 220px 200px 64px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(70px, 1.2fr) minmax(80px, 1fr);
   align-items: center;
   min-height: 56px;
   border-bottom: 1px solid var(--color-border);
-  padding: 8px 24px 8px 24px;
-  gap: 4px;
+  padding: 8px 16px 8px 24px;
+  gap: 8px;
 }
 
 .bp-pay-dash-root .metric-label-col {
@@ -311,6 +311,12 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  min-width: 0;
+}
+
+.bp-pay-dash-root .metric-spark-col svg {
+  width: 100%;
+  height: 20px;
 }
 
 .bp-pay-dash-root .metric-spark-hoverable {
@@ -327,7 +333,8 @@
 
 /* ─── Scoreboard rows ────────────────────────────────────────────── */
 .bp-pay-dash-root .scoreboard-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) repeat(3, minmax(0, 1fr));
   align-items: stretch;
   border-bottom: 1px solid var(--color-border);
   min-height: 72px;
@@ -338,18 +345,17 @@
 }
 
 .bp-pay-dash-root .scoreboard-name {
-  width: 220px;
-  min-width: 220px;
-  padding: 12px 16px 12px 24px;
+  padding: 12px 12px 12px 24px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 3px;
   border-right: 1px solid var(--color-border);
+  min-width: 0;
 }
 
 .bp-pay-dash-root .scoreboard-name-primary {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 20px;
@@ -362,14 +368,14 @@
 }
 
 .bp-pay-dash-root .scoreboard-card {
-  flex: 1;
-  padding: 12px 16px;
+  padding: 12px 12px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 3px;
   border-right: 1px solid var(--color-border);
   min-width: 0;
+  overflow: hidden;
 }
 
 .bp-pay-dash-root .scoreboard-card:last-child {
@@ -388,6 +394,7 @@
   align-items: baseline;
   gap: 4px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .bp-pay-dash-root .scoreboard-card-value {
@@ -576,7 +583,7 @@
   font-feature-settings: 'lnum' 1, 'tnum' 1;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .bp-pay-dash-root .content-columns {
     grid-template-columns: 1fr;
   }
@@ -585,9 +592,5 @@
     height: 1px;
     width: 100%;
     align-self: auto;
-  }
-
-  .bp-pay-dash-root .metric-row {
-    grid-template-columns: 160px 1fr auto 48px;
   }
 }
