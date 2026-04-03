@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import './PaymentsOpsDashboard.css';
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -48,31 +48,18 @@ const generateData = (startDate, endDate) => {
 
     rows.push({
       date: dateStr,
-      totalVolume,
-      totalCount,
-      achVolume,
-      achCount,
-      ccVolume,
-      ccCount,
-      achApprovedCount,
-      achApprovedVolume,
-      ccApprovedCount,
-      ccApprovedVolume,
-      achFees,
-      ccInterchange,
-      achApprovedFees,
-      ccApprovedInterchange,
-      achVerificationAttempts,
-      achVerificationFailed,
-      autopayCount,
-      autopayVolume,
-      customerInitCount,
-      customerInitVolume,
+      totalVolume, totalCount,
+      achVolume, achCount,
+      ccVolume, ccCount,
+      achApprovedCount, achApprovedVolume,
+      ccApprovedCount, ccApprovedVolume,
+      achFees, ccInterchange,
+      achApprovedFees, ccApprovedInterchange,
+      achVerificationAttempts, achVerificationFailed,
+      autopayCount, autopayVolume,
+      customerInitCount, customerInitVolume,
       dailyUniqueCustomers,
-      chargebackCount,
-      chargebackVolume,
-      chargebackRate,
-      approvalRate,
+      chargebackCount, chargebackVolume, chargebackRate, approvalRate,
     });
 
     cursor.setDate(cursor.getDate() + 1);
@@ -92,6 +79,14 @@ const DEPOSITS_IN_TRANSIT = FULL_DATASET.slice(-2).reduce(
   0
 );
 
+const PAYOUTS_DATA = [
+  { id: 'TXN112346789001', status: 'Paid',    statusClass: 'low',     merchant: 'Taproom Capital', family: 'Daily Tacos',  payoutDate: 'Jan 15, 2026', expDate: 'Jan 15, 2026', refDate: 'Jan 15, 2026', netAmount: '$524,810', fees: '$1,500.00' },
+  { id: 'TXN112346789002', status: 'Paid',    statusClass: 'low',     merchant: 'Taproom Capital', family: 'Daily Tacos',  payoutDate: 'Jan 15, 2026', expDate: 'Jan 15, 2026', refDate: 'Jan 15, 2026', netAmount: '$248,711', fees: '$1,500.00' },
+  { id: 'TXN112346789003', status: 'Refund',  statusClass: 'neutral', merchant: 'Taproom Capital', family: 'Fikki-iyaaa', payoutDate: 'Jan 15, 2026', expDate: 'Jan 15, 2026', refDate: 'Jan 15, 2026', netAmount: '$248,140', fees: '$1,500.00' },
+  { id: 'TXN112346789004', status: 'Pending', statusClass: 'mid',     merchant: 'Taproom Capital', family: 'Fikki-iyaaa', payoutDate: 'Jan 15, 2026', expDate: 'Jan 15, 2026', refDate: 'Jan 15, 2026', netAmount: '$248,140', fees: '$1,500.00' },
+  { id: 'TXN112346789005', status: 'Pending', statusClass: 'mid',     merchant: 'Taproom Capital', family: 'Fikki-iyaaa', payoutDate: 'Jan 15, 2026', expDate: 'Jan 15, 2026', refDate: 'Jan 15, 2026', netAmount: '$248,140', fees: '$1,500.00' },
+];
+
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const fmt = (n) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -108,64 +103,36 @@ const fmtKNum = (n) => {
   return String(Math.round(n));
 };
 const pctChange = (curr, prev) => (prev > 0 ? ((curr - prev) / prev) * 100 : 0);
-const fmtDelta = (pct) => `${pct >= 0 ? '+' : ''}${Math.abs(pct).toFixed(1)}%`;
-const fmtDeltaAbs = (curr, prev) => {
-  const d = curr - prev;
-  if (Math.abs(d) < 0.01) return null;
-  const sign = d >= 0 ? '+' : '−';
-  return `${sign}${fmtNum(Math.abs(d))}`;
-};
 const toDateStr = (d) => d.toISOString().split('T')[0];
 
 // ─── Aggregate ────────────────────────────────────────────────────────────────
 const ZERO = {
-  totalVolume: 0,
-  totalCount: 0,
-  achVolume: 0,
-  achCount: 0,
-  ccVolume: 0,
-  ccCount: 0,
-  achApprovedVolume: 0,
-  achApprovedCount: 0,
-  ccApprovedVolume: 0,
-  ccApprovedCount: 0,
-  achFees: 0,
-  ccInterchange: 0,
-  achApprovedFees: 0,
-  ccApprovedInterchange: 0,
-  achVerificationAttempts: 0,
-  achVerificationFailed: 0,
-  autopayCount: 0,
-  autopayVolume: 0,
-  customerInitCount: 0,
-  customerInitVolume: 0,
+  totalVolume: 0, totalCount: 0,
+  achVolume: 0, achCount: 0,
+  ccVolume: 0, ccCount: 0,
+  achApprovedVolume: 0, achApprovedCount: 0,
+  ccApprovedVolume: 0, ccApprovedCount: 0,
+  achFees: 0, ccInterchange: 0,
+  achApprovedFees: 0, ccApprovedInterchange: 0,
+  achVerificationAttempts: 0, achVerificationFailed: 0,
+  autopayCount: 0, autopayVolume: 0,
+  customerInitCount: 0, customerInitVolume: 0,
   dailyUniqueCustomers: 0,
-  chargebackCount: 0,
-  chargebackVolume: 0,
+  chargebackCount: 0, chargebackVolume: 0,
 };
 
 const aggregate = (rows) => {
   if (!rows.length)
-    return {
-      ...ZERO,
-      approvedVolume: 0,
-      approvedCount: 0,
-      periodUniqueCustomers: 0,
-      chargebackRate: 0,
-      approvalRate: 0,
-    };
+    return { ...ZERO, approvedVolume: 0, approvedCount: 0, periodUniqueCustomers: 0, chargebackRate: 0, approvalRate: 0 };
 
   const t = rows.reduce((acc, r) => {
     const out = {};
-    Object.keys(ZERO).forEach((k) => {
-      out[k] = acc[k] + r[k];
-    });
+    Object.keys(ZERO).forEach((k) => { out[k] = acc[k] + r[k]; });
     return out;
   }, { ...ZERO });
 
   t.approvedVolume = t.achApprovedVolume + t.ccApprovedVolume;
   t.approvedCount = t.achApprovedCount + t.ccApprovedCount;
-  // Mock: approximate distinct payers in range (production: COUNT DISTINCT customer_id).
   t.periodUniqueCustomers = Math.round(t.dailyUniqueCustomers / Math.sqrt(rows.length));
   t.chargebackRate = t.ccCount > 0 ? (t.chargebackCount / t.ccCount) * 100 : 0;
   t.approvalRate = rows.reduce((s, r) => s + r.approvalRate, 0) / rows.length;
@@ -175,134 +142,132 @@ const aggregate = (rows) => {
 // ─── Preset ranges ────────────────────────────────────────────────────────────
 const PRESETS = [
   { label: 'Today', days: 0 },
-  { label: 'Last 7d', days: 6 },
-  { label: 'Last 30d', days: 29 },
-  { label: 'Last 90d', days: 89 },
+  { label: 'Last 7 Days', days: 6 },
+  { label: 'Last 30 Days', days: 29 },
+  { label: 'Last 90 Days', days: 89 },
 ];
 
-/** @returns {'up'|'warn'|'down'|''} */
+// ─── Delta helpers ────────────────────────────────────────────────────────────
 function deltaTone(pct, { inverse = false, tiny = 0.1 } = {}) {
   if (pct === undefined || pct === null || Number.isNaN(pct) || Math.abs(pct) < tiny) return '';
   const good = inverse ? pct < 0 : pct > 0;
-  const bad = inverse ? pct > 0 : pct < 0;
   if (good) return 'up';
-  if (bad) return inverse ? 'warn' : 'down';
-  return '';
+  return inverse ? 'warn' : 'down';
 }
 
-/** For count / absolute deltas where `inverse` means lower is better */
-function absDeltaTone(delta, inverse) {
-  if (delta === undefined || delta === null || delta === 0) return '';
-  if (inverse) return delta > 0 ? 'warn' : 'up';
-  return delta > 0 ? 'up' : 'down';
-}
-
-const BandDelta = ({ pct, inverse = false }) => {
-  const tone = deltaTone(pct, { inverse });
-  if (!tone) return null;
-  return <span className={`band-delta ${tone}`}>{fmtDelta(pct)} vs prior</span>;
-};
-
-const CellDelta = ({ pct, inverse = false }) => {
-  const tone = deltaTone(pct, { inverse });
-  if (!tone) return null;
-  return <span className={`cell-delta ${tone}`}>{fmtDelta(pct)}</span>;
-};
-
-const Band = ({ label, heroVal, heroSub, deltaPct, deltaInverse = false, children, pair }) => (
-  <div className={`band${pair ? ' band--pair' : ''}`}>
-    <div className="band-header">
-      <div className="band-label">{label}</div>
-      <div className="band-hero">
-        {heroVal ? (
-          <>
-            <div className="band-hero-val">{heroVal}</div>
-            {heroSub ? <div className="band-hero-sub">{heroSub}</div> : null}
-          </>
-        ) : null}
-      </div>
-      <div>{deltaPct !== undefined && deltaPct !== null ? <BandDelta pct={deltaPct} inverse={deltaInverse} /> : null}</div>
-    </div>
-    <div className="band-body">{children}</div>
-  </div>
-);
-
-const BandCell = ({ label, val, sub, deltaPct, deltaInverse }) => (
-  <div className="band-cell">
-    <div className="cell-label">{label}</div>
-    <div className="cell-val">
-      {val}
-      {deltaPct !== undefined && deltaPct !== null ? <CellDelta pct={deltaPct} inverse={deltaInverse} /> : null}
-    </div>
-    {sub ? <div className="cell-sub">{sub}</div> : null}
-  </div>
-);
-
-const BandRow = ({ label, labelClass = '', cells }) => (
-  <div className="band-row">
-    <div className={`band-row-label ${labelClass}`.trim()}>{label}</div>
-    <div className="band-row-cells" style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}>
-      {cells.map((c, i) => (
-        <BandCell key={i} {...c} />
-      ))}
-    </div>
-  </div>
-);
-
-const RiskRow = ({ pairs }) => (
-  <div className="risk-body">
-    {pairs.map((p, i) => (
-      <React.Fragment key={i}>
-        <div className="risk-label">{p.label}</div>
-        <div className="risk-val-block">
-          <div className="risk-val">
-            {p.val}
-            {p.deltaPct !== undefined && p.deltaPct !== null ? (
-              <CellDelta pct={p.deltaPct} inverse={p.deltaInverse} />
-            ) : p.deltaAbs != null && p.deltaAbs !== '' ? (
-              <span className={`cell-delta ${absDeltaTone(p.deltaAbsRaw, p.deltaInverse)}`}>{p.deltaAbs}</span>
-            ) : null}
-          </div>
-          {p.sub ? <div className="risk-sub">{p.sub}</div> : null}
-        </div>
-      </React.Fragment>
-    ))}
-  </div>
-);
-
-const FilterGroup = ({ label, options, value, onChange, color }) => (
-  <div className="filter-group">
-    <label>{label}</label>
-    {options.map((opt) => (
-      <button
-        key={opt.value}
-        type="button"
-        className={`filter-btn ${value === opt.value ? `active ${color}` : ''}`.trim()}
-        onClick={() => onChange(opt.value)}
-      >
-        {opt.label}
-      </button>
-    ))}
-  </div>
-);
-
-// ─── Sort helper ──────────────────────────────────────────────────────────────
-const useSortedRows = (rows) => {
-  const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
-  const sorted = useMemo(
-    () =>
-      [...rows].sort((a, b) => {
-        const av = a[sort.key];
-        const bv = b[sort.key];
-        const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
-        return sort.dir === 'asc' ? cmp : -cmp;
-      }),
-    [rows, sort.key, sort.dir]
+// ─── Sparkline ────────────────────────────────────────────────────────────────
+const Sparkline = ({ data, tone = '' }) => {
+  if (!data || data.length < 2) return null;
+  const W = 48, H = 20, pad = 2;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * W;
+      const y = pad + (H - 2 * pad) * (1 - (v - min) / range);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const color = tone === 'up' ? '#4f7e20' : tone === 'down' ? '#a32d2d' : '#378add';
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', flexShrink: 0 }}>
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
   );
-  const toggle = (key) =>
-    setSort((s) => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }));
-  return { sorted, sort, toggle };
 };
+
+// ─── MetricDelta ──────────────────────────────────────────────────────────────
+const MetricDelta = ({ pct, inverse = false, dayCount }) => {
+  if (pct === null || pct === undefined) return <div className="metric-delta" />;
+  const tone = deltaTone(pct, { inverse });
+  const absPct = Math.abs(pct).toFixed(1);
+  const color =
+    tone === 'up' ? '#4f7e20' : tone === 'down' ? '#a32d2d' : 'rgba(10,31,51,0.61)';
+  return (
+    <div className="metric-delta" style={{ color }}>
+      {tone === 'up' && <span className="metric-delta-arrow">↑</span>}
+      {tone === 'down' && <span className="metric-delta-arrow">↓</span>}
+      <span>{absPct}%</span>
+      <span className="metric-delta-period">{dayCount} D</span>
+    </div>
+  );
+};
+
+// ─── MetricRow ────────────────────────────────────────────────────────────────
+const MetricRow = ({ label, val, valSub, deltaPct, deltaInverse = false, spark, dayCount }) => {
+  const tone = deltaTone(deltaPct, { inverse: deltaInverse });
+  return (
+    <div className="metric-row">
+      <div className="metric-label-col">
+        <div className="metric-label-name">{label}</div>
+        <div className="metric-label-sub">TBD</div>
+      </div>
+      <div className="metric-value-col">
+        <div className="metric-value-primary">{val}</div>
+        {valSub && <div className="metric-value-sub">{valSub}</div>}
+      </div>
+      <MetricDelta pct={deltaPct} inverse={deltaInverse} dayCount={dayCount} />
+      <div className="metric-spark-col">
+        <Sparkline data={spark} tone={tone} />
+      </div>
+    </div>
+  );
+};
+
+// ─── ScoreboardCard ───────────────────────────────────────────────────────────
+const ScoreboardCard = ({ label, val, delta, deltaInverse = false, sub, dayCount }) => {
+  const tone = deltaTone(delta, { inverse: deltaInverse });
+  const sign = tone === 'up' ? '↑' : tone === 'down' ? '↓' : '';
+  const deltaColor =
+    tone === 'up' ? '#4f7e20' : tone === 'down' ? '#a32d2d' : 'rgba(10,31,51,0.61)';
+  const showDelta = delta !== null && delta !== undefined && Math.abs(delta) >= 0.05;
+  return (
+    <div className="scoreboard-card">
+      <div className="scoreboard-card-label">{label}</div>
+      <div className="scoreboard-card-value-row">
+        <span className="scoreboard-card-value">{val}</span>
+        {showDelta && (
+          <span className="scoreboard-inline-delta" style={{ color: deltaColor }}>
+            {sign}{Math.abs(delta).toFixed(1)} {dayCount} D
+          </span>
+        )}
+      </div>
+      {sub && <div className="scoreboard-card-sub">{sub}</div>}
+    </div>
+  );
+};
+
+// ─── ScoreboardRow ────────────────────────────────────────────────────────────
+const ScoreboardRow = ({ name, nameSub, cards }) => (
+  <div className="scoreboard-row">
+    <div className="scoreboard-name">
+      <div className="scoreboard-name-primary">{name}</div>
+      <div className="scoreboard-name-sub">{nameSub || 'TBD'}</div>
+    </div>
+    {cards.map((card, i) => (
+      <ScoreboardCard key={i} {...card} />
+    ))}
+  </div>
+);
+
+// ─── FilterPill ───────────────────────────────────────────────────────────────
+const FilterPill = ({ label, value, onClick }) => (
+  <button type="button" className="filter-pill" onClick={onClick}>
+    <span className="filter-pill-label">{label}&nbsp;</span>
+    <span className="filter-pill-value">{value}</span>
+    <span className="filter-pill-chevron">
+      <ChevronDown size={14} />
+    </span>
+  </button>
+);
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const PaymentsOpsDashboard = () => {
@@ -311,11 +276,11 @@ const PaymentsOpsDashboard = () => {
 
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(todayStr);
-  const [activePreset, setActivePreset] = useState('Last 30d');
+  const [activePreset, setActivePreset] = useState('Last 30 Days');
   const [viewMode, setViewMode] = useState('gross');
   const [methodFilter, setMethodFilter] = useState('all');
   const [initFilter, setInitFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('transactions');
+  const [activeTab, setActiveTab] = useState('summary');
   const [dateOpen, setDateOpen] = useState(false);
   const dateAnchorRef = useRef(null);
 
@@ -347,8 +312,6 @@ const PaymentsOpsDashboard = () => {
   const kpis = useMemo(() => aggregate(filteredRows), [filteredRows]);
   const prev = useMemo(() => aggregate(prevRows), [prevRows]);
 
-  const { sorted, sort, toggle } = useSortedRows(filteredRows);
-
   const applyPreset = (p) => {
     setActivePreset(p.label);
     const e = new Date(today);
@@ -375,9 +338,11 @@ const PaymentsOpsDashboard = () => {
   const ccCost = g ? kpis.ccInterchange : kpis.ccApprovedInterchange;
   const pAchVol = g ? prev.achVolume : prev.achApprovedVolume;
   const pCcVol = g ? prev.ccVolume : prev.ccApprovedVolume;
+  const pAchCnt = g ? prev.achCount : prev.achApprovedCount;
+  const pCcCnt = g ? prev.ccCount : prev.ccApprovedCount;
+  const pAchCost = g ? prev.achFees : prev.achApprovedFees;
+  const pCcCost = g ? prev.ccInterchange : prev.ccApprovedInterchange;
   const totalMethodVol = achVol + ccVol;
-  const verifFailRate =
-    kpis.achVerificationAttempts > 0 ? (kpis.achVerificationFailed / kpis.achVerificationAttempts) * 100 : 0;
 
   const approvedRatio = kpis.totalVolume > 0 ? kpis.approvedVolume / kpis.totalVolume : 1;
   const apVol = g ? kpis.autopayVolume : kpis.autopayVolume * approvedRatio;
@@ -385,413 +350,374 @@ const PaymentsOpsDashboard = () => {
   const ciVol = g ? kpis.customerInitVolume : kpis.customerInitVolume * approvedRatio;
   const ciCnt = kpis.customerInitCount;
   const totalInitVol = apVol + ciVol;
+  const prevApprRatio = prev.totalVolume > 0 ? prev.approvedVolume / prev.totalVolume : 1;
+  const pApVol = g ? prev.autopayVolume : prev.autopayVolume * prevApprRatio;
+  const pCiVol = g ? prev.customerInitVolume : prev.customerInitVolume * prevApprRatio;
 
-  const hero = useMemo(() => {
-    if (methodFilter === 'ach') return { vol: achVol, cnt: achCnt, prevVol: pAchVol };
-    if (methodFilter === 'card') return { vol: ccVol, cnt: ccCnt, prevVol: pCcVol };
-    if (initFilter === 'merchant')
-      return {
-        vol: apVol,
-        cnt: apCnt,
-        prevVol: prev.autopayVolume * (g ? 1 : prev.approvedVolume / (prev.totalVolume || 1)),
-      };
-    if (initFilter === 'customer')
-      return {
-        vol: ciVol,
-        cnt: ciCnt,
-        prevVol: prev.customerInitVolume * (g ? 1 : prev.approvedVolume / (prev.totalVolume || 1)),
-      };
-    const pVol = g ? prev.totalVolume : prev.approvedVolume;
-    const vol = g ? kpis.totalVolume : kpis.approvedVolume;
-    const cnt = g ? kpis.totalCount : kpis.approvedCount;
-    return { vol, cnt, prevVol: pVol };
-  }, [
-    methodFilter,
-    initFilter,
-    kpis,
-    prev,
-    achVol,
-    achCnt,
-    ccVol,
-    ccCnt,
-    apVol,
-    apCnt,
-    ciVol,
-    ciCnt,
-    g,
-    pAchVol,
-    pCcVol,
-  ]);
+  const heroVol = g ? kpis.totalVolume : kpis.approvedVolume;
+  const heroCnt = g ? kpis.totalCount : kpis.approvedCount;
+  const prevHeroVol = g ? prev.totalVolume : prev.approvedVolume;
+
+  const volDelta = pctChange(heroVol, prevHeroVol);
+  const cbDelta = pctChange(kpis.chargebackRate, prev.chargebackRate);
+  const aprDelta = pctChange(kpis.approvalRate, prev.approvalRate);
+
+  const avgTxn = heroCnt > 0 ? heroVol / heroCnt : 0;
+  const prevAvgTxn = (g ? prev.totalCount : prev.approvedCount) > 0
+    ? prevHeroVol / (g ? prev.totalCount : prev.approvedCount)
+    : 0;
+
+  const dailyCntSpark = useMemo(() => filteredRows.map(r => g ? r.totalCount : r.achApprovedCount + r.ccApprovedCount), [filteredRows, g]);
+  const dailyAvgTxnSpark = useMemo(() => filteredRows.map(r => {
+    const cnt = g ? r.totalCount : r.achApprovedCount + r.ccApprovedCount;
+    const vol = g ? r.totalVolume : r.achApprovedVolume + r.ccApprovedVolume;
+    return cnt > 0 ? vol / cnt : 0;
+  }), [filteredRows, g]);
+  const dailyCustomersSpark = useMemo(() => filteredRows.map(r => r.dailyUniqueCustomers), [filteredRows]);
+  const dailyVolSpark = useMemo(() => filteredRows.map(r => g ? r.totalVolume : r.achApprovedVolume + r.ccApprovedVolume), [filteredRows, g]);
+  const dailyCbRateSpark = useMemo(() => filteredRows.map(r => r.chargebackRate), [filteredRows]);
+  const dailyAprRateSpark = useMemo(() => filteredRows.map(r => r.approvalRate), [filteredRows]);
+  const dailyCbCountSpark = useMemo(() => filteredRows.map(r => r.chargebackCount), [filteredRows]);
+  const dailyAchVerifSpark = useMemo(() => filteredRows.map(r => r.achVerificationFailed), [filteredRows]);
 
   const showACH = methodFilter === 'all' || methodFilter === 'ach';
   const showCard = methodFilter === 'all' || methodFilter === 'card';
   const showMerchant = initFilter === 'all' || initFilter === 'merchant';
   const showCustomer = initFilter === 'all' || initFilter === 'customer';
 
-  const volDelta = pctChange(hero.vol, hero.prevVol);
-  const cbDelta = pctChange(kpis.chargebackRate, prev.chargebackRate);
-  const aprDelta = pctChange(kpis.approvalRate, prev.approvalRate);
-  const cbCountDeltaRaw = kpis.chargebackCount - prev.chargebackCount;
-  const verifDeltaRaw = kpis.achVerificationFailed - prev.achVerificationFailed;
+  const methodLabels = { all: 'All', ach: 'ACH', card: 'Card' };
+  const initLabels = { all: 'All', merchant: 'Merchant', customer: 'Customer' };
 
-  const dateRangeLabel =
-    activePreset ||
-    `${new Date(startDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(endDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const cycleMethod = () => setMethodFilter(m => m === 'all' ? 'ach' : m === 'ach' ? 'card' : 'all');
+  const cycleInit = () => setInitFilter(f => f === 'all' ? 'merchant' : f === 'merchant' ? 'customer' : 'all');
+  const cycleView = () => setViewMode(v => v === 'gross' ? 'approved' : 'gross');
 
-  const viewLabel = viewMode === 'gross' ? 'gross' : 'approved';
+  const timePeriodLabel = activePreset || (() => {
+    const s = new Date(startDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const e = new Date(endDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${s} – ${e}`;
+  })();
 
   const tabLabels = {
-    transactions: 'Transactions',
-    settlements: 'Settlements',
+    summary: 'Summary',
+    payouts: 'Payouts',
+    reconciliation: 'Reconciliations',
     chargebacks: 'Chargebacks',
-    fees: 'Fees',
-  };
-
-  const ColHeader = ({ col, label }) => (
-    <th onClick={() => toggle(col)}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-        {label}
-        <ArrowUpDown size={11} style={{ opacity: sort.key === col ? 1 : 0.35 }} />
-      </span>
-    </th>
-  );
-
-  const cbPillClass = (rate) => {
-    if (rate > 1) return 'cb-pill high';
-    if (rate > 0.5) return 'cb-pill mid';
-    return 'cb-pill low';
   };
 
   return (
     <div className="bp-pay-dash-root">
-      <div className="dash">
-        <div className="dash-header">
-          <div>
-            <div className="dash-title">BP Pay dashboard</div>
-            <div className="dash-subtitle">Payment volume, method mix, and risk performance</div>
+      {/* Breadcrumb */}
+      <div className="breadcrumb">Home / Payments Dashboard</div>
+
+      {/* Title */}
+      <div className="dash-title">Payments Dashboard</div>
+
+      {/* Filter pills */}
+      <div style={{ position: 'relative' }} ref={dateAnchorRef}>
+        <div className="filter-pills">
+          <FilterPill label="Time Period" value={timePeriodLabel} onClick={() => setDateOpen(o => !o)} />
+          <FilterPill label="View" value={viewMode === 'gross' ? 'Gross' : 'Approved'} onClick={cycleView} />
+          <FilterPill label="Method" value={methodLabels[methodFilter]} onClick={cycleMethod} />
+          <FilterPill label="Initiation" value={initLabels[initFilter]} onClick={cycleInit} />
+        </div>
+        {dateOpen && (
+          <div className="date-range-panel" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4, minWidth: 300 }}>
+            {PRESETS.map(p => (
+              <button
+                key={p.label}
+                type="button"
+                className={`date-preset-btn ${activePreset === p.label ? 'active' : ''}`}
+                onClick={() => applyPreset(p)}
+              >
+                {p.label}
+              </button>
+            ))}
+            <input
+              type="date"
+              className="date-input"
+              value={startDate}
+              min={toDateStr(ninetyDaysAgo)}
+              max={endDate}
+              onChange={e => handleCustomDate('start', e.target.value)}
+            />
+            <span style={{ color: 'rgba(10,31,51,0.61)', fontSize: 11 }}>—</span>
+            <input
+              type="date"
+              className="date-input"
+              value={endDate}
+              min={startDate}
+              max={todayStr}
+              onChange={e => handleCustomDate('end', e.target.value)}
+            />
           </div>
-          <div ref={dateAnchorRef} style={{ position: 'relative', textAlign: 'right' }}>
-            <button type="button" className="date-range" onClick={() => setDateOpen((o) => !o)}>
-              {dateRangeLabel}
-            </button>
-            {dateOpen ? (
-              <div className="date-range-panel" style={{ position: 'absolute', right: 0, zIndex: 20, minWidth: 280 }}>
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    className={`date-preset-btn ${activePreset === p.label ? 'active' : ''}`}
-                    onClick={() => applyPreset(p)}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-                <input
-                  type="date"
-                  className="date-input"
-                  value={startDate}
-                  min={toDateStr(ninetyDaysAgo)}
-                  max={endDate}
-                  onChange={(e) => handleCustomDate('start', e.target.value)}
-                />
-                <span style={{ color: 'var(--color-text-secondary)', fontSize: 11 }}>—</span>
-                <input
-                  type="date"
-                  className="date-input"
-                  value={endDate}
-                  min={startDate}
-                  max={todayStr}
-                  onChange={(e) => handleCustomDate('end', e.target.value)}
-                />
-              </div>
-            ) : null}
-          </div>
-        </div>
+        )}
+      </div>
 
-        <div className="filter-rail">
-          <FilterGroup
-            label="View"
-            color="blue"
-            value={viewMode}
-            onChange={setViewMode}
-            options={[
-              { value: 'gross', label: 'Gross' },
-              { value: 'approved', label: 'Approved' },
-            ]}
-          />
-          <div className="filter-divider" />
-          <FilterGroup
-            label="Method"
-            color="teal"
-            value={methodFilter}
-            onChange={setMethodFilter}
-            options={[
-              { value: 'all', label: 'All' },
-              { value: 'ach', label: 'ACH' },
-              { value: 'card', label: 'Card' },
-            ]}
-          />
-          <div className="filter-divider" />
-          <FilterGroup
-            label="Initiation"
-            color="purple"
-            value={initFilter}
-            onChange={setInitFilter}
-            options={[
-              { value: 'all', label: 'All' },
-              { value: 'merchant', label: 'Merchant' },
-              { value: 'customer', label: 'Customer' },
-            ]}
-          />
-        </div>
-
-        <div className="dash-band-pair">
-          <Band
-            pair
-            label="Volume overview"
-            heroVal={fmtK(hero.vol)}
-            heroSub={`${viewLabel} · ${dayCount}d`}
-            deltaPct={volDelta}
+      {/* Tab bar */}
+      <div className="tab-row">
+        {Object.entries(tabLabels).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`tab-btn ${activeTab === id ? 'active' : ''}`}
+            onClick={() => setActiveTab(id)}
           >
-            <RiskRow
-              pairs={[
-                { label: 'Count', val: fmtKNum(hero.cnt), sub: 'transactions' },
-                {
-                  label: 'Avg txn',
-                  val: fmtK(hero.cnt > 0 ? hero.vol / hero.cnt : 0),
-                  sub: 'per transaction',
-                },
-              ]}
-            />
-            <RiskRow
-              pairs={[
-                {
-                  label: 'Customers',
-                  val: fmtKNum(kpis.periodUniqueCustomers),
-                  sub: 'unique in selected period',
-                },
-                { label: 'In transit', val: fmtK(DEPOSITS_IN_TRANSIT), sub: 'pending settlement' },
-              ]}
-            />
-          </Band>
+            {label}
+          </button>
+        ))}
+        {activeTab === 'payouts' && <span className="tab-meta">{PAYOUTS_DATA.length} rows</span>}
+      </div>
 
-          <Band
-            pair
-            label="Risk + performance"
-            heroVal={fmtPct(kpis.chargebackRate)}
-            heroSub="chargeback rate"
-            deltaPct={cbDelta}
-            deltaInverse
-          >
-            <RiskRow
-              pairs={[
-                {
-                  label: 'Chargeback rate',
-                  val: fmtPct(kpis.chargebackRate),
-                  sub: `${fmtKNum(kpis.chargebackCount)} CBs · ${fmtK(kpis.chargebackVolume)}`,
-                  deltaPct: cbDelta,
-                  deltaInverse: true,
-                },
-                {
-                  label: 'Card approval rate',
-                  val: fmtPct(kpis.approvalRate),
-                  sub: `${fmtKNum(Math.round(kpis.ccCount * kpis.approvalRate / 100))} approved txns`,
-                  deltaPct: aprDelta,
-                },
-              ]}
-            />
-            <RiskRow
-              pairs={[
-                {
-                  label: 'Chargeback count',
-                  val: fmtKNum(kpis.chargebackCount),
-                  sub: `vs ${fmtNum(prev.chargebackCount)} prior period`,
-                  deltaAbs: fmtDeltaAbs(kpis.chargebackCount, prev.chargebackCount),
-                  deltaAbsRaw: cbCountDeltaRaw,
-                  deltaInverse: true,
-                },
-                {
-                  label: 'ACH verif. failures',
-                  val: fmtKNum(kpis.achVerificationFailed),
-                  sub: `${fmtPct(verifFailRate)} fail rate`,
-                  deltaAbs: fmtDeltaAbs(kpis.achVerificationFailed, prev.achVerificationFailed),
-                  deltaAbsRaw: verifDeltaRaw,
-                  deltaInverse: true,
-                },
-              ]}
-            />
-          </Band>
-        </div>
+      {/* ── Summary tab ─────────────────────────────────────────────── */}
+      {activeTab === 'summary' && (
+        <div className="content-columns">
 
-        <div className="dash-band-pair">
-          <Band pair label="Payment methods">
+          {/* Left column: Volume Overview + Payment Methods */}
+          <div className="content-col">
+            <div className="section-header">Volume Overview</div>
+
+            <MetricRow
+              label="Transaction Count"
+              val={fmtKNum(heroCnt)}
+              valSub="Transactions"
+              deltaPct={volDelta}
+              spark={dailyCntSpark}
+              dayCount={dayCount}
+            />
+            <MetricRow
+              label="Average Transactions"
+              val={fmtK(avgTxn)}
+              valSub="Per transaction"
+              deltaPct={pctChange(avgTxn, prevAvgTxn)}
+              spark={dailyAvgTxnSpark}
+              dayCount={dayCount}
+            />
+            <MetricRow
+              label="Customer Count"
+              val={fmtKNum(kpis.periodUniqueCustomers)}
+              valSub="Unique in selected period"
+              deltaPct={pctChange(kpis.periodUniqueCustomers, prev.periodUniqueCustomers)}
+              spark={dailyCustomersSpark}
+              dayCount={dayCount}
+            />
+            <MetricRow
+              label="Transactions in Progress"
+              val={fmtK(DEPOSITS_IN_TRANSIT)}
+              valSub="Pending settlement"
+              deltaPct={pctChange(heroVol, prevHeroVol)}
+              deltaInverse
+              spark={dailyVolSpark}
+              dayCount={dayCount}
+            />
+
+            <div className="section-header">Payment Methods</div>
+
             {showACH && (
-              <BandRow
-                label="ACH"
-                labelClass="teal"
-                cells={[
+              <ScoreboardRow
+                name="ACH"
+                cards={[
                   {
                     label: 'Volume',
                     val: fmtK(achVol),
+                    delta: pctChange(achVol, pAchVol),
                     sub: `${fmtPct(totalMethodVol > 0 ? (achVol / totalMethodVol) * 100 : 0)} of total`,
-                    deltaPct: pctChange(achVol, pAchVol),
+                    dayCount,
                   },
-                  { label: 'Count', val: fmtKNum(achCnt), sub: `${fmtK(achCnt > 0 ? achVol / achCnt : 0)} avg` },
-                  { label: 'Fees', val: fmtK(achCost), sub: `${fmt(achCnt > 0 ? achCost / achCnt : 0)}/txn avg` },
+                  {
+                    label: 'Count',
+                    val: fmtKNum(achCnt),
+                    delta: pctChange(achCnt, pAchCnt),
+                    sub: `${fmtK(achCnt > 0 ? achVol / achCnt : 0)} Average`,
+                    dayCount,
+                  },
+                  {
+                    label: 'Fees',
+                    val: fmtK(achCost),
+                    delta: pctChange(achCost, pAchCost),
+                    sub: `${fmt(achCnt > 0 ? achCost / achCnt : 0)}/Transaction average`,
+                    dayCount,
+                  },
                 ]}
               />
             )}
             {showCard && (
-              <BandRow
-                label="Card"
-                labelClass="purple"
-                cells={[
+              <ScoreboardRow
+                name="Card"
+                cards={[
                   {
                     label: 'Volume',
                     val: fmtK(ccVol),
+                    delta: pctChange(ccVol, pCcVol),
                     sub: `${fmtPct(totalMethodVol > 0 ? (ccVol / totalMethodVol) * 100 : 0)} of total`,
-                    deltaPct: pctChange(ccVol, pCcVol),
+                    dayCount,
                   },
-                  { label: 'Count', val: fmtKNum(ccCnt), sub: `${fmtK(ccCnt > 0 ? ccVol / ccCnt : 0)} avg` },
+                  {
+                    label: 'Count',
+                    val: fmtKNum(ccCnt),
+                    delta: pctChange(ccCnt, pCcCnt),
+                    sub: `${fmtK(ccCnt > 0 ? ccVol / ccCnt : 0)} Average`,
+                    dayCount,
+                  },
                   {
                     label: 'Interchange',
                     val: fmtK(ccCost),
-                    sub: `${fmtPct(ccVol > 0 ? (ccCost / ccVol) * 100 : 0)} rate`,
+                    delta: pctChange(ccCost, pCcCost),
+                    sub: `${fmtPct(ccVol > 0 ? (ccCost / ccVol) * 100 : 0)} Rate`,
+                    dayCount,
                   },
                 ]}
               />
             )}
-          </Band>
+          </div>
 
-          <Band pair label={'Initiation\ntype'}>
+          <div className="col-divider" />
+
+          {/* Right column: Risk + Performance + Initiation Type */}
+          <div className="content-col">
+            <div className="section-header">Risk and Performance</div>
+
+            <MetricRow
+              label="Chargeback Rate"
+              val={fmtPct(kpis.chargebackRate)}
+              valSub={`${fmtKNum(kpis.chargebackCount)} Chargebacks`}
+              deltaPct={cbDelta}
+              deltaInverse
+              spark={dailyCbRateSpark}
+              dayCount={dayCount}
+            />
+            <MetricRow
+              label="Card Approval Rate"
+              val={fmtPct(kpis.approvalRate)}
+              valSub={`${fmtKNum(Math.round(kpis.ccCount * kpis.approvalRate / 100))} Approved transactions`}
+              deltaPct={aprDelta}
+              spark={dailyAprRateSpark}
+              dayCount={dayCount}
+            />
+            <MetricRow
+              label="Chargeback Count"
+              val={fmtKNum(kpis.chargebackCount)}
+              valSub={`${fmtPct(kpis.chargebackRate)} Rate`}
+              deltaPct={pctChange(kpis.chargebackCount, prev.chargebackCount)}
+              deltaInverse
+              spark={dailyCbCountSpark}
+              dayCount={dayCount}
+            />
+            <MetricRow
+              label="ACH Failures"
+              val={fmtKNum(kpis.achVerificationFailed)}
+              valSub="Pending settlement"
+              deltaPct={pctChange(kpis.achVerificationFailed, prev.achVerificationFailed)}
+              deltaInverse
+              spark={dailyAchVerifSpark}
+              dayCount={dayCount}
+            />
+
+            <div className="section-header">Initiation Type</div>
+
             {showMerchant && (
-              <BandRow
-                label="Merchant (autopay)"
-                cells={[
+              <ScoreboardRow
+                name="Merchant"
+                nameSub="Autopay"
+                cards={[
                   {
                     label: 'Volume',
                     val: fmtK(apVol),
+                    delta: pctChange(apVol, pApVol),
                     sub: `${fmtPct(totalInitVol > 0 ? (apVol / totalInitVol) * 100 : 0)} of total`,
+                    dayCount,
                   },
-                  { label: 'Count', val: fmtKNum(apCnt), sub: 'transactions' },
-                  { label: 'Avg txn', val: fmtK(apCnt > 0 ? apVol / apCnt : 0), sub: 'per transaction' },
+                  {
+                    label: 'Count',
+                    val: fmtKNum(apCnt),
+                    delta: pctChange(apCnt, prev.autopayCount),
+                    sub: 'Transactions',
+                    dayCount,
+                  },
+                  {
+                    label: 'Avg. Transactions',
+                    val: fmtK(apCnt > 0 ? apVol / apCnt : 0),
+                    delta: null,
+                    sub: 'Per transaction',
+                    dayCount,
+                  },
                 ]}
               />
             )}
             {showCustomer && (
-              <BandRow
-                label="Customer"
-                cells={[
+              <ScoreboardRow
+                name="Customer"
+                cards={[
                   {
                     label: 'Volume',
                     val: fmtK(ciVol),
+                    delta: pctChange(ciVol, pCiVol),
                     sub: `${fmtPct(totalInitVol > 0 ? (ciVol / totalInitVol) * 100 : 0)} of total`,
+                    dayCount,
                   },
-                  { label: 'Count', val: fmtKNum(ciCnt), sub: 'transactions' },
-                  { label: 'Avg txn', val: fmtK(ciCnt > 0 ? ciVol / ciCnt : 0), sub: 'per transaction' },
+                  {
+                    label: 'Count',
+                    val: fmtKNum(ciCnt),
+                    delta: pctChange(ciCnt, prev.customerInitCount),
+                    sub: 'Transactions',
+                    dayCount,
+                  },
+                  {
+                    label: 'Avg. Transactions',
+                    val: fmtK(ciCnt > 0 ? ciVol / ciCnt : 0),
+                    delta: null,
+                    sub: 'Per transaction',
+                    dayCount,
+                  },
                 ]}
               />
             )}
-          </Band>
+          </div>
         </div>
+      )}
 
-        <div className="tab-row">
-          {Object.entries(tabLabels).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={`tab-btn ${activeTab === id ? 'active' : ''}`}
-              onClick={() => setActiveTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-          {activeTab === 'transactions' ? <span className="tab-meta">{sorted.length} rows</span> : null}
-        </div>
-
-        {activeTab === 'transactions' ? (
-          <div className="txn-table-wrap">
-            <table className="txn-table">
-              <thead>
-                <tr>
-                  <ColHeader col="date" label="Date" />
-                  <ColHeader col="totalVolume" label="Total Volume" />
-                  <ColHeader col="totalCount" label="Total Count" />
-                  <ColHeader col="achVolume" label="ACH Volume" />
-                  <ColHeader col="achCount" label="ACH Count" />
-                  <ColHeader col="ccVolume" label="CC Volume" />
-                  <ColHeader col="ccCount" label="CC Count" />
-                  <ColHeader col="chargebackRate" label="CB Rate" />
-                  <ColHeader col="chargebackVolume" label="CB Amount" />
-                  <ColHeader col="chargebackCount" label="CB Count" />
-                  <ColHeader col="approvalRate" label="Approval %" />
+      {/* ── Payouts tab ──────────────────────────────────────────────── */}
+      {activeTab === 'payouts' && (
+        <div className="txn-table-wrap">
+          <table className="txn-table">
+            <thead>
+              <tr>
+                <th>Invoice ID</th>
+                <th>Status</th>
+                <th>Merchant</th>
+                <th>Fmly Toac</th>
+                <th>Payout Date</th>
+                <th>Expiring Date</th>
+                <th>Referral Date</th>
+                <th style={{ textAlign: 'right' }}>Net Amount</th>
+                <th style={{ textAlign: 'right' }}>Fees</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PAYOUTS_DATA.map(row => (
+                <tr key={row.id}>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{row.id}</td>
+                  <td><span className={`cb-pill ${row.statusClass}`}>{row.status}</span></td>
+                  <td>{row.merchant}</td>
+                  <td>{row.family}</td>
+                  <td>{row.payoutDate}</td>
+                  <td>{row.expDate}</td>
+                  <td>{row.refDate}</td>
+                  <td style={{ textAlign: 'right' }}>{row.netAmount}</td>
+                  <td style={{ textAlign: 'right' }}>{row.fees}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {sorted.map((row) => (
-                  <tr key={row.date}>
-                    <td>{row.date}</td>
-                    <td>{fmt(row.totalVolume)}</td>
-                    <td>{fmtNum(row.totalCount)}</td>
-                    <td className="text-teal">{fmt(row.achVolume)}</td>
-                    <td className="text-teal">{fmtNum(row.achCount)}</td>
-                    <td className="text-purple">{fmt(row.ccVolume)}</td>
-                    <td className="text-purple">{fmtNum(row.ccCount)}</td>
-                    <td>
-                      <span className={cbPillClass(row.chargebackRate)}>{fmtPct(row.chargebackRate)}</span>
-                    </td>
-                    <td>{fmt(row.chargebackVolume)}</td>
-                    <td>{fmtNum(row.chargebackCount)}</td>
-                    <td>
-                      <span
-                        className={
-                          row.approvalRate >= 97 ? 'apr-up' : row.approvalRate >= 95 ? 'apr-mid' : 'apr-down'
-                        }
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                      >
-                        {row.approvalRate >= 97 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                        {fmtPct(row.approvalRate)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {sorted.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} className="txn-empty">
-                      No data for selected range
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-              {sorted.length > 0 ? (
-                <tfoot>
-                  <tr>
-                    <td style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Totals / Avg
-                    </td>
-                    <td>{fmt(kpis.totalVolume)}</td>
-                    <td>{fmtNum(kpis.totalCount)}</td>
-                    <td className="text-teal">{fmt(kpis.achVolume)}</td>
-                    <td className="text-teal">{fmtNum(kpis.achCount)}</td>
-                    <td className="text-purple">{fmt(kpis.ccVolume)}</td>
-                    <td className="text-purple">{fmtNum(kpis.ccCount)}</td>
-                    <td>
-                      <span className={cbPillClass(kpis.chargebackRate)}>{fmtPct(kpis.chargebackRate)}</span>
-                    </td>
-                    <td>{fmt(kpis.chargebackVolume)}</td>
-                    <td>{fmtNum(kpis.chargebackCount)}</td>
-                    <td className="apr-up">{fmtPct(kpis.approvalRate)}</td>
-                  </tr>
-                </tfoot>
-              ) : null}
-            </table>
-          </div>
-        ) : (
-          <div className="table-placeholder">
-            {tabLabels[activeTab]} data will appear here based on active filters
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Other tabs ───────────────────────────────────────────────── */}
+      {activeTab !== 'summary' && activeTab !== 'payouts' && (
+        <div className="table-placeholder">
+          {tabLabels[activeTab]} data will appear here based on active filters
+        </div>
+      )}
     </div>
   );
 };
