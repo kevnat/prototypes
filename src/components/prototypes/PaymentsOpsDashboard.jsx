@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import './PaymentsOpsDashboard.css';
 
@@ -184,6 +185,90 @@ const Sparkline = ({ data, tone = '' }) => {
   );
 };
 
+// ─── SparklineLarge (used inside the popover) ─────────────────────────────────
+const SparklineLarge = ({ data, tone }) => {
+  if (!data || data.length < 2) return null;
+  const W = 256, H = 72, padX = 4, padY = 6;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = padX + (i / (data.length - 1)) * (W - 2 * padX);
+    const y = padY + (H - 2 * padY) * (1 - (v - min) / range);
+    return [x.toFixed(1), y.toFixed(1)];
+  });
+  const linePts = pts.map(([x, y]) => `${x},${y}`).join(' ');
+  const areaPts = [
+    `${pts[0][0]},${H}`,
+    ...pts.map(([x, y]) => `${x},${y}`),
+    `${pts[pts.length - 1][0]},${H}`,
+  ].join(' ');
+  const color = tone === 'up' ? '#4f7e20' : tone === 'down' ? '#a32d2d' : '#378add';
+  const fill  = tone === 'up' ? 'rgba(79,126,32,0.1)' : tone === 'down' ? 'rgba(163,45,45,0.1)' : 'rgba(55,138,221,0.1)';
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+      <polygon points={areaPts} fill={fill} />
+      <polyline points={linePts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+};
+
+// ─── TrendPopover ─────────────────────────────────────────────────────────────
+const TrendPopover = ({ label, valSub, deltaPct, deltaInverse, spark, dayCount, tone, statFmt, anchorRect }) => {
+  if (!anchorRect || !spark || spark.length < 2) return null;
+
+  const min = Math.min(...spark);
+  const max = Math.max(...spark);
+  const avg = spark.reduce((s, v) => s + v, 0) / spark.length;
+  const trend = spark[spark.length - 1] - spark[0];
+
+  const popW = 292;
+  const popH = 172;
+  const vp = { w: window.innerWidth, h: window.innerHeight };
+  let left = anchorRect.left + anchorRect.width / 2 - popW / 2;
+  let top  = anchorRect.top - popH - 10;
+  if (left + popW > vp.w - 8) left = vp.w - popW - 8;
+  if (left < 8) left = 8;
+  if (top < 8) top = anchorRect.bottom + 10;
+
+  const color = tone === 'up' ? '#4f7e20' : tone === 'down' ? '#a32d2d' : '#378add';
+  const sign  = tone === 'up' ? '↑' : tone === 'down' ? '↓' : '';
+  const absPct = deltaPct !== null && deltaPct !== undefined ? Math.abs(deltaPct).toFixed(1) : null;
+  const trendTone = trend > 0 ? 'up' : trend < 0 ? 'down' : '';
+  const trendColor = trendTone === 'up' ? '#4f7e20' : trendTone === 'down' ? '#a32d2d' : 'rgba(10,31,51,0.61)';
+
+  return createPortal(
+    <div className="trend-popover" style={{ position: 'fixed', left, top, width: popW, zIndex: 9999 }}>
+      <div className="trend-popover-header">
+        <span className="trend-popover-label">{label}</span>
+        {absPct !== null && (
+          <span className="trend-popover-delta" style={{ color }}>
+            {sign}{absPct}%&nbsp;<span className="trend-popover-period">{dayCount}D</span>
+          </span>
+        )}
+      </div>
+      {valSub && <div className="trend-popover-sub">{valSub}</div>}
+      <div className="trend-popover-chart">
+        <SparklineLarge data={spark} tone={tone} />
+      </div>
+      <div className="trend-popover-stats">
+        {[
+          { label: 'Min',   val: statFmt(min) },
+          { label: 'Max',   val: statFmt(max) },
+          { label: 'Avg',   val: statFmt(avg) },
+          { label: 'Trend', val: <span style={{ color: trendColor }}>{trendTone === 'up' ? '↑' : trendTone === 'down' ? '↓' : '—'} {statFmt(Math.abs(trend))}</span> },
+        ].map(({ label: l, val: v }) => (
+          <div key={l} className="trend-stat">
+            <div className="trend-stat-label">{l}</div>
+            <div className="trend-stat-val">{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 // ─── MetricDelta ──────────────────────────────────────────────────────────────
 const MetricDelta = ({ pct, inverse = false, dayCount }) => {
   if (pct === null || pct === undefined) return <div className="metric-delta" />;
@@ -202,8 +287,16 @@ const MetricDelta = ({ pct, inverse = false, dayCount }) => {
 };
 
 // ─── MetricRow ────────────────────────────────────────────────────────────────
-const MetricRow = ({ label, val, valSub, deltaPct, deltaInverse = false, spark, dayCount }) => {
+const MetricRow = ({ label, val, valSub, deltaPct, deltaInverse = false, spark, dayCount, statFmt = fmtKNum }) => {
+  const [anchorRect, setAnchorRect] = useState(null);
+  const sparkRef = useRef(null);
   const tone = deltaTone(deltaPct, { inverse: deltaInverse });
+
+  const handleMouseEnter = () => {
+    if (sparkRef.current) setAnchorRect(sparkRef.current.getBoundingClientRect());
+  };
+  const handleMouseLeave = () => setAnchorRect(null);
+
   return (
     <div className="metric-row">
       <div className="metric-label-col">
@@ -215,8 +308,24 @@ const MetricRow = ({ label, val, valSub, deltaPct, deltaInverse = false, spark, 
         {valSub && <div className="metric-value-sub">{valSub}</div>}
       </div>
       <MetricDelta pct={deltaPct} inverse={deltaInverse} dayCount={dayCount} />
-      <div className="metric-spark-col">
+      <div
+        className="metric-spark-col metric-spark-hoverable"
+        ref={sparkRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <Sparkline data={spark} tone={tone} />
+        <TrendPopover
+          label={label}
+          valSub={valSub}
+          deltaPct={deltaPct}
+          deltaInverse={deltaInverse}
+          spark={spark}
+          dayCount={dayCount}
+          tone={tone}
+          statFmt={statFmt}
+          anchorRect={anchorRect}
+        />
       </div>
     </div>
   );
@@ -281,17 +390,20 @@ const PaymentsOpsDashboard = () => {
   const [methodFilter, setMethodFilter] = useState('all');
   const [initFilter, setInitFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('summary');
-  const [dateOpen, setDateOpen] = useState(false);
-  const dateAnchorRef = useRef(null);
+  const [openPill, setOpenPill] = useState(null); // 'date' | 'view' | 'method' | 'init'
+  const filterRailRef = useRef(null);
 
   useEffect(() => {
-    if (!dateOpen) return;
+    if (!openPill) return;
     const onDoc = (e) => {
-      if (dateAnchorRef.current && !dateAnchorRef.current.contains(e.target)) setDateOpen(false);
+      if (filterRailRef.current && !filterRailRef.current.contains(e.target)) setOpenPill(null);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [dateOpen]);
+  }, [openPill]);
+
+  const togglePill = (name) => setOpenPill(p => p === name ? null : name);
+  const dateOpen = openPill === 'date';
 
   const filteredRows = useMemo(
     () => FULL_DATASET.filter((r) => r.date >= startDate && r.date <= endDate),
@@ -385,12 +497,11 @@ const PaymentsOpsDashboard = () => {
   const showMerchant = initFilter === 'all' || initFilter === 'merchant';
   const showCustomer = initFilter === 'all' || initFilter === 'customer';
 
-  const methodLabels = { all: 'All', ach: 'ACH', card: 'Card' };
-  const initLabels = { all: 'All', merchant: 'Merchant', customer: 'Customer' };
-
-  const cycleMethod = () => setMethodFilter(m => m === 'all' ? 'ach' : m === 'ach' ? 'card' : 'all');
-  const cycleInit = () => setInitFilter(f => f === 'all' ? 'merchant' : f === 'merchant' ? 'customer' : 'all');
-  const cycleView = () => setViewMode(v => v === 'gross' ? 'approved' : 'gross');
+  const viewOptions   = [{ value: 'gross',    label: 'Gross'    }, { value: 'approved', label: 'Approved' }];
+  const methodOptions = [{ value: 'all',      label: 'All'      }, { value: 'ach',      label: 'ACH'      }, { value: 'card',     label: 'Card'     }];
+  const initOptions   = [{ value: 'all',      label: 'All'      }, { value: 'merchant', label: 'Merchant' }, { value: 'customer', label: 'Customer' }];
+  const methodLabels  = Object.fromEntries(methodOptions.map(o => [o.value, o.label]));
+  const initLabels    = Object.fromEntries(initOptions.map(o => [o.value, o.label]));
 
   const timePeriodLabel = activePreset || (() => {
     const s = new Date(startDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -414,44 +525,87 @@ const PaymentsOpsDashboard = () => {
       <div className="dash-title">Payments Dashboard</div>
 
       {/* Filter pills */}
-      <div style={{ position: 'relative' }} ref={dateAnchorRef}>
-        <div className="filter-pills">
-          <FilterPill label="Time Period" value={timePeriodLabel} onClick={() => setDateOpen(o => !o)} />
-          <FilterPill label="View" value={viewMode === 'gross' ? 'Gross' : 'Approved'} onClick={cycleView} />
-          <FilterPill label="Method" value={methodLabels[methodFilter]} onClick={cycleMethod} />
-          <FilterPill label="Initiation" value={initLabels[initFilter]} onClick={cycleInit} />
+      <div className="filter-pills" ref={filterRailRef}>
+
+        {/* Time Period */}
+        <div style={{ position: 'relative' }}>
+          <FilterPill label="Time Period" value={timePeriodLabel} onClick={() => togglePill('date')} />
+          {dateOpen && (
+            <div className="date-range-panel" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4, minWidth: 300 }}>
+              {PRESETS.map(p => (
+                <button
+                  key={p.label}
+                  type="button"
+                  className={`date-preset-btn ${activePreset === p.label ? 'active' : ''}`}
+                  onClick={() => { applyPreset(p); setOpenPill(null); }}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <input type="date" className="date-input" value={startDate} min={toDateStr(ninetyDaysAgo)} max={endDate} onChange={e => handleCustomDate('start', e.target.value)} />
+              <span style={{ color: 'rgba(10,31,51,0.61)', fontSize: 11 }}>—</span>
+              <input type="date" className="date-input" value={endDate} min={startDate} max={todayStr} onChange={e => handleCustomDate('end', e.target.value)} />
+            </div>
+          )}
         </div>
-        {dateOpen && (
-          <div className="date-range-panel" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4, minWidth: 300 }}>
-            {PRESETS.map(p => (
-              <button
-                key={p.label}
-                type="button"
-                className={`date-preset-btn ${activePreset === p.label ? 'active' : ''}`}
-                onClick={() => applyPreset(p)}
-              >
-                {p.label}
-              </button>
-            ))}
-            <input
-              type="date"
-              className="date-input"
-              value={startDate}
-              min={toDateStr(ninetyDaysAgo)}
-              max={endDate}
-              onChange={e => handleCustomDate('start', e.target.value)}
-            />
-            <span style={{ color: 'rgba(10,31,51,0.61)', fontSize: 11 }}>—</span>
-            <input
-              type="date"
-              className="date-input"
-              value={endDate}
-              min={startDate}
-              max={todayStr}
-              onChange={e => handleCustomDate('end', e.target.value)}
-            />
-          </div>
-        )}
+
+        {/* View */}
+        <div style={{ position: 'relative' }}>
+          <FilterPill label="View" value={viewMode === 'gross' ? 'Gross' : 'Approved'} onClick={() => togglePill('view')} />
+          {openPill === 'view' && (
+            <div className="pill-dropdown" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4 }}>
+              {viewOptions.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={`pill-option${viewMode === o.value ? ' active' : ''}`}
+                  onClick={() => { setViewMode(o.value); setOpenPill(null); }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Method */}
+        <div style={{ position: 'relative' }}>
+          <FilterPill label="Method" value={methodLabels[methodFilter]} onClick={() => togglePill('method')} />
+          {openPill === 'method' && (
+            <div className="pill-dropdown" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4 }}>
+              {methodOptions.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={`pill-option${methodFilter === o.value ? ' active' : ''}`}
+                  onClick={() => { setMethodFilter(o.value); setOpenPill(null); }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Initiation */}
+        <div style={{ position: 'relative' }}>
+          <FilterPill label="Initiation" value={initLabels[initFilter]} onClick={() => togglePill('init')} />
+          {openPill === 'init' && (
+            <div className="pill-dropdown" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4 }}>
+              {initOptions.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={`pill-option${initFilter === o.value ? ' active' : ''}`}
+                  onClick={() => { setInitFilter(o.value); setOpenPill(null); }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Tab bar */}
@@ -484,6 +638,7 @@ const PaymentsOpsDashboard = () => {
               deltaPct={volDelta}
               spark={dailyCntSpark}
               dayCount={dayCount}
+              statFmt={fmtKNum}
             />
             <MetricRow
               label="Average Transactions"
@@ -492,6 +647,7 @@ const PaymentsOpsDashboard = () => {
               deltaPct={pctChange(avgTxn, prevAvgTxn)}
               spark={dailyAvgTxnSpark}
               dayCount={dayCount}
+              statFmt={fmtK}
             />
             <MetricRow
               label="Customer Count"
@@ -500,6 +656,7 @@ const PaymentsOpsDashboard = () => {
               deltaPct={pctChange(kpis.periodUniqueCustomers, prev.periodUniqueCustomers)}
               spark={dailyCustomersSpark}
               dayCount={dayCount}
+              statFmt={fmtKNum}
             />
             <MetricRow
               label="Transactions in Progress"
@@ -509,6 +666,7 @@ const PaymentsOpsDashboard = () => {
               deltaInverse
               spark={dailyVolSpark}
               dayCount={dayCount}
+              statFmt={fmtK}
             />
 
             <div className="section-header">Payment Methods</div>
@@ -585,6 +743,7 @@ const PaymentsOpsDashboard = () => {
               deltaInverse
               spark={dailyCbRateSpark}
               dayCount={dayCount}
+              statFmt={fmtPct}
             />
             <MetricRow
               label="Card Approval Rate"
@@ -593,6 +752,7 @@ const PaymentsOpsDashboard = () => {
               deltaPct={aprDelta}
               spark={dailyAprRateSpark}
               dayCount={dayCount}
+              statFmt={fmtPct}
             />
             <MetricRow
               label="Chargeback Count"
@@ -602,6 +762,7 @@ const PaymentsOpsDashboard = () => {
               deltaInverse
               spark={dailyCbCountSpark}
               dayCount={dayCount}
+              statFmt={fmtKNum}
             />
             <MetricRow
               label="ACH Failures"
@@ -611,6 +772,7 @@ const PaymentsOpsDashboard = () => {
               deltaInverse
               spark={dailyAchVerifSpark}
               dayCount={dayCount}
+              statFmt={fmtKNum}
             />
 
             <div className="section-header">Initiation Type</div>

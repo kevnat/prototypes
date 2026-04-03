@@ -93,6 +93,40 @@
   margin-left: 2px;
 }
 
+/* Simple option dropdown (View / Method / Initiation) */
+.bp-pay-dash-root .pill-dropdown {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.bp-pay-dash-root .pill-option {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.bp-pay-dash-root .pill-option:hover {
+  background: var(--color-surface);
+}
+
+.bp-pay-dash-root .pill-option.active {
+  font-weight: 600;
+  color: #185fa5;
+  background: #e8f3ff;
+}
+
 /* Date picker dropdown */
 .bp-pay-dash-root .date-range-panel {
   padding: 10px 12px;
@@ -279,6 +313,18 @@
   justify-content: flex-end;
 }
 
+.bp-pay-dash-root .metric-spark-hoverable {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  margin: -4px;
+  transition: background 0.12s;
+}
+
+.bp-pay-dash-root .metric-spark-hoverable:hover {
+  background: rgba(55, 138, 221, 0.1);
+}
+
 /* ─── Scoreboard rows ────────────────────────────────────────────── */
 .bp-pay-dash-root .scoreboard-row {
   display: flex;
@@ -445,6 +491,89 @@
   background: var(--color-surface);
   color: var(--color-text-subtle);
   border: 1px solid var(--color-border-strong);
+}
+
+/* ─── Trend popover (portal — rendered outside .bp-pay-dash-root) ─── */
+.trend-popover {
+  background: #ffffff;
+  border: 1px solid rgba(5, 36, 67, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 12px 14px;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.trend-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 1px;
+}
+
+.trend-popover-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(1, 6, 10, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trend-popover-delta {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.trend-popover-period {
+  font-weight: 400;
+  color: rgba(10, 31, 51, 0.61);
+}
+
+.trend-popover-sub {
+  font-size: 11px;
+  color: rgba(10, 31, 51, 0.61);
+  margin-bottom: 6px;
+}
+
+.trend-popover-chart {
+  margin: 8px -2px 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(5, 36, 67, 0.02);
+}
+
+.trend-popover-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(5, 36, 67, 0.1);
+}
+
+.trend-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trend-stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(10, 31, 51, 0.61);
+  font-weight: 600;
+}
+
+.trend-stat-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(1, 6, 10, 0.88);
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
 }
 
 @media (max-width: 900px) {
