@@ -1,438 +1,560 @@
-import React, { useState } from 'react';
-import { Upload, Search, FileText, Settings, ListChecks, X } from 'lucide-react';
-import {
-  mockFiles,
-  mockBatches,
-  mockTransactionsByFile,
-  mockRules,
-  mockAllocations
-} from '../../data/cashAppMockData';
+import { useState, useMemo } from 'react';
+import { RefreshCw, Search, SlidersHorizontal, SkipForward, Edit, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { mockLockboxFile, mockTransactions } from '../../data/cashAppMockData';
 
-// Prototype scaffold for new Cash App / Lockbox module
-// Inspired by legacy CBIL auto-allocation dashboard
-// Provides three major sections: File Import, Transactions, Allocation Details
+const ROWS_PER_PAGE_OPTIONS = [5, 10, 25, 50];
+
+const StatusBadge = ({ status }) => {
+  if (status === 'R') {
+    return (
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white text-xs font-bold">
+        R
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-500 text-white text-xs font-bold">
+      U
+    </span>
+  );
+};
+
+const MatchingStatusCell = ({ lockboxMatched, allocationMatched, splitCount = 1 }) => (
+  <div className="flex flex-col gap-1">
+    <div className="flex items-center gap-1.5">
+      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+        Lockbox
+      </span>
+      {lockboxMatched ? (
+        <CheckCircle className="w-3 h-3 text-green-500" />
+      ) : (
+        <AlertTriangle className="w-3 h-3 text-red-400" />
+      )}
+      <span className={`text-xs ${lockboxMatched ? 'text-green-600' : 'text-red-500'}`}>
+        {lockboxMatched ? 'Matched' : 'No match'}
+      </span>
+    </div>
+    <div className="flex items-center gap-1.5">
+      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+        Allocation
+      </span>
+      {allocationMatched ? (
+        <CheckCircle className="w-3 h-3 text-green-500" />
+      ) : (
+        <AlertTriangle className="w-3 h-3 text-red-400" />
+      )}
+      <span className={`text-xs ${allocationMatched ? 'text-green-600' : 'text-red-500'}`}>
+        {allocationMatched ? 'Matched' : 'No match'}
+      </span>
+      {splitCount > 1 && (
+        <span className="text-xs text-gray-400">· {splitCount} splits</span>
+      )}
+    </div>
+  </div>
+);
 
 const CashAppPrototype = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [dateFrom, setDateFrom] = useState('2025-11-18');
-  const [dateTo, setDateTo] = useState('2025-11-20');
-  const [onlyUncompleted, setOnlyUncompleted] = useState(false);
+  const [selectedRecordId, setSelectedRecordId] = useState(null);
+  const [matchFilter, setMatchFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [splitSearch, setSplitSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    // TODO: parse uploaded file and create new batch
-    console.log('File uploaded:', file);
-  };
+  const file = mockLockboxFile;
+  const reconciledPct = Math.round((file.reconciledCount / file.recordsTotal) * 100);
 
-  const handleFileSelect = (file) => {
-    setSelectedFile(file);
-    setTransactions(mockTransactionsByFile[file.id] || []);
-    setSelectedTransaction(null);
-  };
+  // Group transactions into one row per unique lockbox record
+  const groupedRecords = useMemo(() => {
+    const map = new Map();
+    for (const t of mockTransactions) {
+      if (!map.has(t.lockboxRecordId)) {
+        map.set(t.lockboxRecordId, []);
+      }
+      map.get(t.lockboxRecordId).push(t);
+    }
 
-  const handleTransactionSelect = (transaction) => {
-    setSelectedTransaction(transaction);
-  };
+    return Array.from(map.entries()).map(([recordId, splits]) => {
+      const allLockboxMatched = splits.every(s => s.lockboxMatched);
+      const allAllocMatched = splits.every(s => s.allocationMatched);
+      const splitCount = splits.length;
+      const uniqueAccounts = [...new Set(splits.map(s => s.accountName))];
+      const uniqueInvoices = [...new Set(splits.map(s => s.invoiceId).filter(Boolean))];
 
-  const handleSkipToggle = (transactionId, e) => {
-    e.stopPropagation();
-    // TODO: Toggle skip status
-    console.log('Toggle skip for:', transactionId);
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric'
+      return {
+        lockboxRecordId: recordId,
+        splitCount,
+        status: allLockboxMatched && allAllocMatched ? 'R' : 'U',
+        accountKey: splitCount === 1 ? splits[0].accountKey : '—',
+        accountName: splitCount === 1 ? splits[0].accountName : `Multiple (${uniqueAccounts.length})`,
+        frwInvoiceId: splits[0].frwInvoiceId,
+        invoiceId: uniqueInvoices.length === 0 ? '' : uniqueInvoices.length === 1 ? uniqueInvoices[0] : `Multiple (${uniqueInvoices.length})`,
+        amount: splits[0].allocationAmount, // total lockbox record amount
+        matchingRule: splits[0].matchingRule,
+        allocationAmount: splits[0].allocationAmount,
+        lockboxMatched: allLockboxMatched,
+        allocationMatched: splitCount > 1 ? true : allAllocMatched,
+      };
     });
+  }, []);
+
+  const filtered = useMemo(() => {
+    let rows = groupedRecords;
+
+    if (matchFilter === 'reconciled') {
+      rows = rows.filter(r => r.lockboxMatched && r.allocationMatched);
+    } else if (matchFilter === 'unreconciled') {
+      rows = rows.filter(r => !r.lockboxMatched || !r.allocationMatched);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      rows = rows.filter(r =>
+        r.lockboxRecordId.includes(q) ||
+        r.accountName.toLowerCase().includes(q) ||
+        r.accountKey.toLowerCase().includes(q) ||
+        r.invoiceId.toLowerCase().includes(q)
+      );
+    }
+
+    return rows;
+  }, [groupedRecords, matchFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+  const pagedRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  const reconciledCount = groupedRecords.filter(r => r.lockboxMatched && r.allocationMatched).length;
+  const unreconciledCount = groupedRecords.filter(r => !r.lockboxMatched || !r.allocationMatched).length;
+
+  const handleFilterChange = (f) => {
+    setMatchFilter(f);
+    setCurrentPage(1);
   };
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-NZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  const filteredFiles = mockFiles.filter(file => {
-    if (onlyUncompleted && file.numberToProcess === 0) return false;
-    return true;
-  });
+  // All splits for the selected lockbox record
+  const recordSplits = useMemo(() => {
+    if (!selectedRecordId) return [];
+    const allSplits = mockTransactions.filter(t => t.lockboxRecordId === selectedRecordId);
+    const q = splitSearch.toLowerCase();
+    if (!q) return allSplits;
+    return allSplits.filter(t =>
+      t.accountName.toLowerCase().includes(q) ||
+      t.accountKey.toLowerCase().includes(q) ||
+      t.invoiceId.toLowerCase().includes(q)
+    );
+  }, [selectedRecordId, splitSearch]);
+
+  // Context info for the selected lockbox record
+  const selectedRecordContext = useMemo(() => {
+    if (!selectedRecordId) return null;
+    const allSplits = mockTransactions.filter(t => t.lockboxRecordId === selectedRecordId);
+    const totalAmount = allSplits[0]?.allocationAmount ?? '$0.00';
+    const splitCount = allSplits.length;
+    const reconciled = allSplits.filter(t => t.lockboxMatched && t.allocationMatched).length;
+    return { totalAmount, splitCount, reconciled };
+  }, [selectedRecordId]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-slate-50">
-      {/* HEADER */}
-      <div className="p-4 border-b bg-white flex items-center justify-between shadow-sm sticky top-0 z-10">
-        <h1 className="text-xl font-semibold text-slate-800">Cash Application / Lockbox Prototype</h1>
-        <div className="text-xs text-slate-500">
-          Selected File: {selectedFile ? `${formatDate(selectedFile.dateFrom)}` : 'None'}
+    <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-gray-200 px-6 py-2 text-xs text-gray-500">
+        <div className="max-w-[1200px] mx-auto">
+          Accounting&nbsp;/&nbsp;Cash Management&nbsp;/&nbsp;
+          <span className="text-blue-600 font-medium">Lockbox Files [{file.batchId}]</span>
         </div>
       </div>
 
-      {/* MAIN LAYOUT: 2 COLUMNS */}
-      <div className="grid grid-cols-2 gap-3 p-4 pb-8 items-start">
-        {/* LEFT COLUMN: FILES + TRANSACTIONS */}
-        <div className="flex flex-col gap-3">
-          {/* FILES SECTION */}
-          <div className="bg-white border rounded-xl shadow-sm p-3 flex flex-col h-[320px]">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-medium text-slate-800 flex items-center space-x-2">
-                <Search className="h-5 w-5 text-slate-700" />
-                <span>Files</span>
-              </h2>
-            </div>
+      <div className="max-w-[1200px] mx-auto px-6 py-5 space-y-4">
+        {/* Title + Refresh */}
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold text-gray-900">Lockbox Files: {file.batchId}</h1>
+        </div>
 
-            {/* Search Controls */}
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="flex items-center space-x-2">
-                <label className="text-xs text-slate-600">Date From:</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="border rounded px-2 py-1 text-xs"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <label className="text-xs text-slate-600">Date To:</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="border rounded px-2 py-1 text-xs"
-                />
-              </div>
-              <button className="px-3 py-1 bg-slate-700 text-white rounded text-xs hover:bg-slate-800">
-                Search
-              </button>
-            </div>
+        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded transition-colors">
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
 
-            <div className="flex items-center space-x-2 mb-3">
-              <input
-                type="checkbox"
-                id="uncompleted"
-                checked={onlyUncompleted}
-                onChange={(e) => setOnlyUncompleted(e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="uncompleted" className="text-xs text-slate-600">
-                Only uncompleted files
-              </label>
+        {/* File Banner */}
+        <div className="bg-white border border-gray-200 rounded flex overflow-hidden">
+          {/* Left: file name */}
+          <div className="flex items-center gap-4 px-6 py-4 flex-1 border-r border-gray-200">
+            <div className="w-10 h-10 bg-blue-50 border border-blue-200 rounded flex items-center justify-center text-blue-600 flex-shrink-0">
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
             </div>
-
-            {/* Files Table */}
-            <div className="flex-1 overflow-auto border rounded-lg">
-              <table className="min-w-full text-xs">
-                <thead className="bg-slate-100 text-slate-700 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left whitespace-nowrap">Date From</th>
-                    <th className="px-2 py-2 text-left whitespace-nowrap">Date To</th>
-                    <th className="px-2 py-2 text-right whitespace-nowrap">Total Trans.</th>
-                    <th className="px-2 py-2 text-right whitespace-nowrap">Total Am.</th>
-                    <th className="px-2 py-2 text-right whitespace-nowrap">Skipped</th>
-                    <th className="px-2 py-2 text-right whitespace-nowrap">To Process</th>
-                    <th className="px-2 py-2 text-right whitespace-nowrap">Amount</th>
-                    <th className="px-2 py-2 text-center">Del</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFiles.map((file) => (
-                    <tr
-                      key={file.id}
-                      onClick={() => handleFileSelect(file)}
-                      className={`cursor-pointer hover:bg-slate-50 border-b ${
-                        selectedFile?.id === file.id ? 'bg-yellow-50' : ''
-                      }`}
-                    >
-                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(file.dateFrom)}</td>
-                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(file.dateTo)}</td>
-                      <td className="px-2 py-2 text-right">{file.totalTransactions.toLocaleString()}</td>
-                      <td className="px-2 py-2 text-right">{formatCurrency(file.totalAmount)}</td>
-                      <td className="px-2 py-2 text-right">{file.numberSkipped}</td>
-                      <td className="px-2 py-2 text-right font-medium">{file.numberToProcess.toLocaleString()}</td>
-                      <td className="px-2 py-2 text-right font-medium">{formatCurrency(file.amountToProcess)}</td>
-                      <td className="px-2 py-2 text-center">
-                        <button className="text-red-500 hover:text-red-700" onClick={(e) => e.stopPropagation()}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">Lockbox File Name</p>
+              <p className="text-sm text-blue-600 font-medium">{file.name}</p>
             </div>
           </div>
 
-          {/* TRANSACTIONS SECTION */}
-          <div className="bg-white border rounded-xl shadow-sm p-3 flex flex-col flex-1">
-            <h2 className="text-lg font-medium text-slate-800 mb-3 flex items-center space-x-2">
-              <ListChecks className="h-5 w-5 text-slate-700" />
-              <span>Transactions</span>
-              {selectedFile && (
-                <span className="text-xs text-slate-500 ml-2">
-                  ({transactions.length} transactions)
-                </span>
-              )}
-            </h2>
+          {/* Middle: progress */}
+          <div className="flex flex-col justify-center px-8 py-4 flex-1 border-r border-gray-200">
+            <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+              <span>Records Total: {file.recordsTotal}</span>
+            </div>
+            <div className="flex h-2.5 rounded overflow-hidden bg-gray-100">
+              <div
+                className="bg-green-500 transition-all"
+                style={{ width: `${reconciledPct}%` }}
+              />
+              <div
+                className="bg-yellow-400"
+                style={{ width: `${100 - reconciledPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1.5">{reconciledPct}% Reconciled</p>
+          </div>
 
-            <div className="flex-1 overflow-auto border rounded-lg">
-              <table className="min-w-full text-xs">
-                <thead className="bg-slate-100 text-slate-700 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left">Skip</th>
-                    <th className="px-2 py-2 text-left">Bank Account</th>
-                    <th className="px-2 py-2 text-left">Date</th>
-                    <th className="px-2 py-2 text-left">Particulars</th>
-                    <th className="px-2 py-2 text-left">Code</th>
-                    <th className="px-2 py-2 text-left">Other Party</th>
-                    <th className="px-2 py-2 text-right">Amount</th>
-                    <th className="px-2 py-2 text-right">Remaining</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!selectedFile ? (
-                    <tr>
-                      <td colSpan="8" className="px-3 py-8 text-center text-slate-400">
-                        Select a file to view transactions
-                      </td>
-                    </tr>
-                  ) : transactions.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="px-3 py-8 text-center text-slate-400">
-                        No transactions found in this file
-                      </td>
-                    </tr>
-                  ) : (
-                    transactions.map((txn) => (
-                      <tr
-                        key={txn.id}
-                        onClick={() => handleTransactionSelect(txn)}
-                        className={`cursor-pointer hover:bg-slate-50 border-b ${
-                          selectedTransaction?.id === txn.id ? 'bg-yellow-50' : ''
-                        } ${txn.remaining === 0 ? 'text-slate-500' : 'text-slate-900'}`}
-                      >
-                        <td className="px-2 py-2">
-                          <input
-                            type="checkbox"
-                            checked={txn.skip}
-                            onChange={(e) => handleSkipToggle(txn.id, e)}
-                            className="rounded"
-                          />
-                        </td>
-                        <td className="px-2 py-2 text-xs">{txn.bankAccount}</td>
-                        <td className="px-2 py-2 whitespace-nowrap">{formatDate(txn.date)}</td>
-                        <td className="px-2 py-2 font-medium">{txn.particulars}</td>
-                        <td className="px-2 py-2">{txn.code}</td>
-                        <td className="px-2 py-2">{txn.otherParty}</td>
-                        <td className="px-2 py-2 text-right font-medium">{formatCurrency(txn.amount)}</td>
-                        <td className={`px-2 py-2 text-right font-bold ${
-                          txn.remaining === 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatCurrency(txn.remaining)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          {/* Right: status */}
+          <div className="flex flex-col items-center justify-center px-8 py-4 bg-blue-600 min-w-[180px]">
+            <p className="text-white font-bold text-sm tracking-wide mb-2">STATUS: {file.status}</p>
+            <button className="px-5 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded transition-colors">
+              Post
+            </button>
+          </div>
+        </div>
+
+        {/* Metadata grid */}
+        <div className="bg-white border border-gray-200 rounded">
+          <div className="grid grid-cols-2 divide-x divide-gray-200">
+            <div className="divide-y divide-gray-200">
+              <div className="flex px-6 py-2.5 gap-4">
+                <span className="text-xs text-gray-500 w-36 flex-shrink-0 text-right">Batch ID</span>
+                <span className="text-xs text-gray-900">{file.batchId}</span>
+              </div>
+              <div className="flex px-6 py-2.5 gap-4">
+                <span className="text-xs text-gray-500 w-36 flex-shrink-0 text-right">Total Amount</span>
+                <span className="text-xs text-gray-900">{file.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex px-6 py-2.5 gap-4">
+                <span className="text-xs text-gray-500 w-36 flex-shrink-0 text-right">Error Report</span>
+                <span className="text-xs text-gray-900">{file.errorReport}</span>
+              </div>
+            </div>
+            <div className="divide-y divide-gray-200">
+              <div className="flex px-6 py-2.5 gap-4">
+                <span className="text-xs text-gray-500 w-48 flex-shrink-0 text-right">Lockbox Configuration</span>
+                <span className="text-xs text-blue-600">{file.lockboxConfig}</span>
+              </div>
+              <div className="flex px-6 py-2.5 gap-4">
+                <span className="text-xs text-gray-500 w-48 flex-shrink-0 text-right">Source</span>
+                <span className="text-xs text-gray-900">{file.source}</span>
+              </div>
+              <div className="flex px-6 py-2.5 gap-4">
+                <span className="text-xs text-gray-500 w-48 flex-shrink-0 text-right">Error</span>
+                <span className="text-xs text-gray-900">{file.error}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: BATCH + RULES + ALLOCATION */}
-        <div className="flex flex-col gap-3">
-          {/* BATCH SECTION */}
-          <div className="bg-white border rounded-xl shadow-sm p-3 flex flex-col h-[240px]">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-medium text-slate-800 flex items-center space-x-2">
-                <Upload className="h-5 w-5 text-slate-700" />
-                <span>Import & Batches</span>
-              </h2>
-            </div>
+        {/* Filter tabs */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handleFilterChange('all')}
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium border transition-colors ${
+              matchFilter === 'all'
+                ? 'bg-gray-800 text-white border-gray-800'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <span className="text-xs uppercase tracking-wide">All Transactions</span>
+            <span className={`text-sm font-bold ${matchFilter === 'all' ? 'text-white' : 'text-gray-800'}`}>
+              {groupedRecords.length}
+            </span>
+          </button>
+          <button
+            onClick={() => handleFilterChange('reconciled')}
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium border transition-colors ${
+              matchFilter === 'reconciled'
+                ? 'bg-green-600 text-white border-green-600'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            <span className="text-xs uppercase tracking-wide">Reconciled</span>
+            <span className={`text-sm font-bold ${matchFilter === 'reconciled' ? 'text-white' : 'text-gray-800'}`}>
+              {reconciledCount}
+            </span>
+          </button>
+          <button
+            onClick={() => handleFilterChange('unreconciled')}
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium border transition-colors ${
+              matchFilter === 'unreconciled'
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="text-xs uppercase tracking-wide">Unreconciled</span>
+            <span className={`text-sm font-bold ${matchFilter === 'unreconciled' ? 'text-white' : 'text-gray-800'}`}>
+              {unreconciledCount}
+            </span>
+          </button>
+        </div>
 
-            {/* Import Controls */}
-            <div className="flex items-center space-x-3 mb-3">
-              <input
-                type="file"
-                onChange={handleFileUpload}
-                className="text-xs flex-1 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-700 file:text-white hover:file:bg-slate-800 file:cursor-pointer border border-slate-300 rounded-md p-1"
-              />
-              <button className="px-3 py-1 bg-slate-700 text-white rounded text-xs hover:bg-slate-800">
-                Import File
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleSearch}
+            placeholder="Search..."
+            className="w-full pl-9 pr-10 py-2 bg-white border border-gray-200 rounded text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+          />
+          <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Transactions Table */}
+        <div className="bg-white border border-gray-200 rounded overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-white">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">ID</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Account Key</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Account Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">FRW Invoice ID</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Invoice ID</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Amount</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Allocation Amount</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Matching Status</th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {pagedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-3 py-10 text-center text-gray-400 text-sm">
+                      No transactions found
+                    </td>
+                  </tr>
+                ) : (
+                  pagedRows.map((rec) => {
+                    const isSelected = selectedRecordId === rec.lockboxRecordId;
+                    const allocationIsOrange = !rec.allocationMatched && rec.allocationAmount !== '$0.00';
+                    return (
+                      <tr
+                        key={rec.lockboxRecordId}
+                        onClick={() => {
+                          setSelectedRecordId(isSelected ? null : rec.lockboxRecordId);
+                          setSplitSearch('');
+                        }}
+                        className={`cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <td className="px-3 py-3">
+                          <StatusBadge status={rec.status} />
+                        </td>
+                        <td className="px-3 py-3 text-gray-900 font-medium whitespace-nowrap">{rec.lockboxRecordId}</td>
+                        <td className="px-3 py-3 text-gray-700 whitespace-nowrap">{rec.accountKey}</td>
+                        <td className="px-3 py-3 text-gray-900">{rec.accountName}</td>
+                        <td className="px-3 py-3 text-gray-500">{rec.frwInvoiceId || ''}</td>
+                        <td className="px-3 py-3 text-gray-700">{rec.invoiceId || ''}</td>
+                        <td className="px-3 py-3 text-right text-gray-900 font-medium whitespace-nowrap">{rec.amount}</td>
+                        <td className={`px-3 py-3 text-right font-semibold whitespace-nowrap ${
+                          allocationIsOrange ? 'text-orange-500' : 'text-gray-900'
+                        }`}>
+                          {rec.allocationAmount}
+                        </td>
+                        <td className="px-3 py-3">
+                          <MatchingStatusCell
+                            lockboxMatched={rec.lockboxMatched}
+                            allocationMatched={rec.allocationMatched}
+                            splitCount={rec.splitCount}
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); }}
+                              className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
+                              title="Skip"
+                            >
+                              <SkipForward className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); }}
+                              className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && <span className="text-gray-400">...</span>}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Batches Table */}
-            <div className="flex-1 overflow-auto border rounded-lg">
-              <table className="min-w-full text-xs">
-                <thead className="bg-slate-100 text-slate-700 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left">Batch No.</th>
-                    <th className="px-2 py-2 text-left">Status</th>
-                    <th className="px-2 py-2 text-left">Date</th>
-                    <th className="px-2 py-2 text-right">Trans</th>
-                    <th className="px-2 py-2 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockBatches.map((batch) => (
-                    <tr key={batch.batchNumber} className="hover:bg-slate-50 border-b">
-                      <td className="px-2 py-2 font-mono">{batch.batchNumber}</td>
-                      <td className="px-2 py-2">
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          batch.status === 'Accepted' ? 'bg-green-100 text-green-700' :
-                          batch.status === 'Posted' ? 'bg-blue-100 text-blue-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {batch.status}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(batch.date)}</td>
-                      <td className="px-2 py-2 text-right">{batch.numberTransactions.toLocaleString()}</td>
-                      <td className="px-2 py-2 text-right">{formatCurrency(batch.amount)}</td>
-                    </tr>
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+              <span>
+                Showing {filtered.length === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1} to{' '}
+                {Math.min(currentPage * rowsPerPage, filtered.length)} of {filtered.length} rows
+              </span>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="border border-gray-200 rounded px-1.5 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {ROWS_PER_PAGE_OPTIONS.map(n => (
+                    <option key={n} value={n}>{n}</option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+                <span>rows per page</span>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* RULES SECTION */}
-          <div className="bg-white border rounded-xl shadow-sm p-3 flex flex-col flex-1">
-            <h3 className="text-md font-medium text-slate-800 mb-3 flex items-center space-x-2">
-              <Settings className="h-4 w-4 text-slate-700" />
-              <span>Rules Applied</span>
-            </h3>
-
-            <div className="flex-1 overflow-auto">
-              {!selectedTransaction ? (
-                <p className="text-sm text-slate-400 text-center py-8">
-                  Select a transaction to view applied rules
-                </p>
-              ) : selectedTransaction.rulesApplied.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">
-                  No rules matched this transaction
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedTransaction.rulesApplied.map((ruleId) => {
-                    const rule = mockRules[ruleId];
-                    if (!rule) return null;
-                    return (
-                      <div key={rule.id} className="border rounded-lg p-3 bg-slate-50">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="font-medium text-sm text-slate-800">{rule.name}</div>
-                          <div className="text-xs text-slate-500">{rule.createdBy}</div>
-                        </div>
-                        <div className="text-xs text-slate-600 space-y-1">
-                          {rule.criteria.map((crit, idx) => (
-                            <div key={idx} className="font-mono">
-                              {crit.field} {crit.operator} "{crit.value}"
-                            </div>
-                          ))}
-                          <div className="mt-2 text-xs text-slate-500">
-                            Created: {formatDateTime(rule.createdOn)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+        {/* Invoice Allocations — shows all splits of the selected lockbox record */}
+        <div className="bg-white border border-gray-200 rounded overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-200">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 mb-1">Invoice Allocations</h2>
+                {selectedRecordId && selectedRecordContext ? (
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-500">
+                    <span>Lockbox Record: <strong className="text-gray-900">{selectedRecordId}</strong></span>
+                    <span>Total Amount: <strong className="text-gray-900">{selectedRecordContext.totalAmount}</strong></span>
+                    <span>Payment Splits: <strong className="text-gray-900">{selectedRecordContext.splitCount}</strong></span>
+                    <span>
+                      Reconciled:{' '}
+                      <strong className={selectedRecordContext.reconciled === selectedRecordContext.splitCount ? 'text-green-600' : 'text-amber-600'}>
+                        {selectedRecordContext.reconciled}/{selectedRecordContext.splitCount}
+                      </strong>
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">Select a row above to see how its lockbox record amount is split across invoices</p>
+                )}
+              </div>
+              {selectedRecordId && (
+                <div className="relative flex-shrink-0 w-56">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={splitSearch}
+                    onChange={(e) => setSplitSearch(e.target.value)}
+                    placeholder="Search splits..."
+                    className="w-full pl-8 pr-4 py-1.5 border border-gray-200 rounded text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                  />
                 </div>
               )}
             </div>
           </div>
 
-          {/* ALLOCATION SECTION */}
-          <div className="bg-white border rounded-xl shadow-sm p-3 flex flex-col flex-1">
-            <h3 className="text-md font-medium text-slate-800 mb-3 flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-slate-700" />
-              <span>Allocation Details</span>
-            </h3>
-
-            <div className="flex-1 overflow-auto">
-              {!selectedTransaction ? (
-                <p className="text-sm text-slate-400 text-center py-8">
-                  Select a transaction to view allocation details
-                </p>
-              ) : selectedTransaction.allocations.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-slate-400 mb-3">No allocation yet</p>
-                  <button className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                    Create Allocation
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {selectedTransaction.allocations.map((allocId) => {
-                    const alloc = mockAllocations[allocId];
-                    if (!alloc) return null;
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Account Key</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Account Name</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Invoice ID</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Invoice Closed Date</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Invoice Due Amount</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Split Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {!selectedRecordId ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-xs">
+                      Select a transaction above to view invoice allocations
+                    </td>
+                  </tr>
+                ) : recordSplits.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-xs">
+                      No splits found
+                    </td>
+                  </tr>
+                ) : (
+                  recordSplits.map((split) => {
+                    const inv = split.invoiceAllocations[0];
                     return (
-                      <div key={alloc.id} className="border rounded-lg p-4 bg-slate-50">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-sm font-semibold text-slate-800">
-                            Billing Period: {alloc.billingPeriod}
-                          </div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            alloc.status === 'Allocated' ? 'bg-green-100 text-green-700' :
-                            alloc.status === 'Partial' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {alloc.status}
-                          </span>
-                        </div>
-
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Customer:</span>
-                            <span className="font-medium">{alloc.customerName}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Customer ID:</span>
-                            <span className="font-mono text-xs">{alloc.customerId}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Invoice:</span>
-                            <span className="font-mono text-xs">{alloc.invoiceNumber}</span>
-                          </div>
-                          <div className="flex justify-between border-t pt-2 mt-2">
-                            <span className="text-slate-600">Amount:</span>
-                            <span className="font-bold text-green-600">{formatCurrency(alloc.allocatedAmount)}</span>
-                          </div>
-                          <div className="flex justify-between text-xs text-slate-500 pt-2 border-t">
-                            <span>{alloc.allocationType} by {alloc.allocatedBy}</span>
-                            <span>{formatDateTime(alloc.allocatedOn)}</span>
-                          </div>
-                        </div>
-
-                        {!alloc.processed && (
-                          <div className="mt-3 flex space-x-2">
-                            <button className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-xs hover:bg-green-700">
-                              Process
-                            </button>
-                            <button className="flex-1 px-3 py-1.5 border border-slate-300 text-slate-700 rounded text-xs hover:bg-slate-50">
-                              Edit
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <tr key={split.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{split.accountKey}</td>
+                        <td className="px-4 py-2.5 text-gray-900">{split.accountName}</td>
+                        <td className="px-4 py-2.5 text-gray-700">{split.invoiceId || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap text-xs">
+                          {inv?.invoiceClosedDate ?? '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-gray-900 font-medium">
+                          {inv?.invoiceDueAmount ?? '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-gray-900 font-semibold whitespace-nowrap">
+                          {split.amount}
+                        </td>
+                      </tr>
                     );
-                  })}
-                </div>
-              )}
-            </div>
+                  })
+                )}
+              </tbody>
+            </table>
+            {selectedRecordId && recordSplits.length > 0 && (
+              <div className="px-4 py-2 border-t border-gray-200 text-right text-xs text-gray-400">
+                Showing {recordSplits.length} of {mockTransactions.filter(t => t.lockboxRecordId === selectedRecordId).length} splits
+              </div>
+            )}
           </div>
         </div>
       </div>
