@@ -46,9 +46,6 @@ const MatchingStatusCell = ({ lockboxMatched, allocationMatched, splitCount = 1 
       <span className={`text-xs ${allocationMatched ? 'text-green-600' : 'text-red-500'}`}>
         {allocationMatched ? 'Matched' : 'No match'}
       </span>
-      {splitCount > 1 && (
-        <span className="text-xs text-gray-400">· {splitCount} splits</span>
-      )}
     </div>
   </div>
 );
@@ -159,17 +156,39 @@ const CashAppPrototype = () => {
     return { totalAmount, splitCount, reconciled };
   }, [selectedRecordId]);
 
+  const sessionNotes = [
+    {
+      category: 'Lockbox Records Table',
+      items: [
+        'Grouped rows by unique lockbox record ID — one row per record (not one row per split)',
+        'Multi-split records show "Multiple (N)" for account and invoice columns',
+        'Allocation shown as Matched when a record has multiple splits (payment was distributed)',
+        'Removed Matching Rule column',
+        'Simplified matching status text to "Matched / No match"',
+      ],
+    },
+    {
+      category: 'Invoice Allocations Panel',
+      items: [
+        'Clicking a row loads all splits for that lockbox record — showing how the total amount is distributed across invoices',
+        'Context header shows: Lockbox Record ID, Total Amount, split count, reconciled ratio',
+        'Columns: Account Key, Account Name, Invoice ID, Invoice Closed Date, Invoice Due Amount, Split Amount',
+        'Actions column shows Edit only — skipping is only available at the lockbox record level (top table)',
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2 text-xs text-gray-500">
-        <div className="max-w-[1200px] mx-auto">
-          Accounting&nbsp;/&nbsp;Cash Management&nbsp;/&nbsp;
-          <span className="text-blue-600 font-medium">Lockbox Files [{file.batchId}]</span>
-        </div>
+      <div className="bg-white border-b border-gray-200 px-16 py-2 text-xs text-gray-500">
+        Accounting&nbsp;/&nbsp;Cash Management&nbsp;/&nbsp;
+        <span className="text-blue-600 font-medium">Lockbox Files [{file.batchId}]</span>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-6 py-5 space-y-4">
+      <div className="flex items-start gap-5 px-16 py-5">
+        {/* Main content */}
+        <div className="flex-1 min-w-0 space-y-4">
         {/* Title + Refresh */}
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold text-gray-900">Lockbox Files: {file.batchId}</h1>
@@ -340,7 +359,7 @@ const CashAppPrototype = () => {
               <tbody className="divide-y divide-gray-100">
                 {pagedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-3 py-10 text-center text-gray-400 text-sm">
+                    <td colSpan={10} className="px-3 py-10 text-center text-gray-400 text-sm">
                       No transactions found
                     </td>
                   </tr>
@@ -381,20 +400,13 @@ const CashAppPrototype = () => {
                           />
                         </td>
                         <td className="px-3 py-3">
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-center">
                             <button
                               onClick={(e) => { e.stopPropagation(); }}
                               className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
                               title="Skip"
                             >
                               <SkipForward className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); }}
-                              className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -512,18 +524,19 @@ const CashAppPrototype = () => {
                   <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Invoice Closed Date</th>
                   <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Invoice Due Amount</th>
                   <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Split Amount</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {!selectedRecordId ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-xs">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-xs">
                       Select a transaction above to view invoice allocations
                     </td>
                   </tr>
                 ) : recordSplits.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-xs">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-xs">
                       No splits found
                     </td>
                   </tr>
@@ -544,6 +557,13 @@ const CashAppPrototype = () => {
                         <td className="px-4 py-2.5 text-right text-gray-900 font-semibold whitespace-nowrap">
                           {split.amount}
                         </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center justify-center">
+                            <button className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 transition-colors" title="Edit">
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -555,6 +575,32 @@ const CashAppPrototype = () => {
                 Showing {recordSplits.length} of {mockTransactions.filter(t => t.lockboxRecordId === selectedRecordId).length} splits
               </div>
             )}
+          </div>
+        </div>
+        </div>
+
+        {/* Notes panel */}
+        <div className="w-72 flex-shrink-0 sticky top-4 space-y-3">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-yellow-200 bg-yellow-100">
+              <h3 className="text-xs font-semibold text-yellow-900 uppercase tracking-wide">Session Notes</h3>
+              <p className="text-xs text-yellow-700 mt-0.5">Changes made this session</p>
+            </div>
+            <div className="px-4 py-3 space-y-4 max-h-[80vh] overflow-y-auto">
+              {sessionNotes.map((section) => (
+                <div key={section.category}>
+                  <p className="text-xs font-semibold text-yellow-900 mb-1.5">{section.category}</p>
+                  <ul className="space-y-1.5">
+                    {section.items.map((note, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-yellow-800">
+                        <span className="mt-1 w-1 h-1 rounded-full bg-yellow-500 flex-shrink-0" />
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
