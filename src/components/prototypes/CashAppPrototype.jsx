@@ -82,8 +82,8 @@ const CashAppPrototype = () => {
         lockboxRecordId: recordId,
         splitCount,
         status: allLockboxMatched && allAllocMatched ? 'R' : 'U',
-        accountKey: splitCount === 1 ? splits[0].accountKey : '—',
-        accountName: splitCount === 1 ? splits[0].accountName : `Multiple (${uniqueAccounts.length})`,
+        accountKey: splits[0].originalAccountKey,
+        accountName: splits[0].originalAccountName,
         frwInvoiceId: splits[0].frwInvoiceId,
         invoiceId: uniqueInvoices.length === 0 ? '' : uniqueInvoices.length === 1 ? uniqueInvoices[0] : `Multiple (${uniqueInvoices.length})`,
         amount: splits[0].allocationAmount, // total lockbox record amount
@@ -161,7 +161,7 @@ const CashAppPrototype = () => {
       category: 'Lockbox Records Table',
       items: [
         'Grouped rows by unique lockbox record ID — one row per record (not one row per split)',
-        'Multi-split records show "Multiple (N)" for account and invoice columns',
+        'Multi-split records show the original lockbox payer account name and key (not split-level accounts)',
         'Allocation shown as Matched when a record has multiple splits (payment was distributed)',
         'Removed Matching Rule column',
         'Simplified matching status text to "Matched / No match"',
