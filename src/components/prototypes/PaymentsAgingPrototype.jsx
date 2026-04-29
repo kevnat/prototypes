@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 
 const paData = [
-  { date: '26/12/2025', id: '00304991', recv: -56.12, applied: -56.12, account: 'TMC Trailers CHC', allocs: [{ aid: '45426481', inv: '690795', amt: -56.12, date: '26/12/2025', bp: '202512', account: 'TMC Trailers CHC' }] },
-  { date: '26/12/2025', id: '00304812', recv: -30.56, applied: -30.56, account: 'TMC Trailers CHC', allocs: [{ aid: '45426274', inv: '704789', amt: -30.56, date: '28/12/2025', bp: '202512', account: 'TMC Trailers CHC' }] },
   { date: '24/12/2025', id: '00304800', recv: 100.03, applied: 100.03, account: 'TMC Trailers CHC', allocs: [
     { aid: '45419832', inv: '609128', amt: 60.03, date: '24/12/2025', bp: '202512', account: 'TMC Trailers CHC' },
     { aid: '45419791', inv: '683267', amt: 40.00, date: '27/12/2025', bp: '202601', account: 'TMC Trailers AKL' },
