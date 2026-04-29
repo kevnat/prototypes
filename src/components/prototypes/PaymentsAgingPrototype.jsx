@@ -1,28 +1,28 @@
 import React, { useState } from 'react';
 
 const paData = [
-  { date: '26/12/2025', id: '00304991', recv: -56.12, applied: -56.12, account: 'NZC - TMC Trailers CHC', allocs: [{ aid: '45426481', inv: '690795', amt: -56.12, date: '26/12/2025', bp: '202512', account: 'NZC - TMC Trailers CHC' }] },
-  { date: '26/12/2025', id: '00304812', recv: -30.56, applied: -30.56, account: 'NZC - TMC Trailers CHC', allocs: [{ aid: '45426274', inv: '704789', amt: -30.56, date: '28/12/2025', bp: '202512', account: 'NZC - TMC Trailers CHC' }] },
-  { date: '24/12/2025', id: '00304800', recv: 100.03, applied: 100.03, account: 'NZC - TMC Trailers CHC', allocs: [
-    { aid: '45419832', inv: '609128', amt: 60.03, date: '24/12/2025', bp: '202512', account: 'NZC - TMC Trailers CHC' },
-    { aid: '45419791', inv: '683267', amt: 40.00, date: '27/12/2025', bp: '202601', account: 'NZC - TMC Trailers AKL' },
+  { date: '26/12/2025', id: '00304991', recv: -56.12, applied: -56.12, account: 'TMC Trailers CHC', allocs: [{ aid: '45426481', inv: '690795', amt: -56.12, date: '26/12/2025', bp: '202512', account: 'TMC Trailers CHC' }] },
+  { date: '26/12/2025', id: '00304812', recv: -30.56, applied: -30.56, account: 'TMC Trailers CHC', allocs: [{ aid: '45426274', inv: '704789', amt: -30.56, date: '28/12/2025', bp: '202512', account: 'TMC Trailers CHC' }] },
+  { date: '24/12/2025', id: '00304800', recv: 100.03, applied: 100.03, account: 'TMC Trailers CHC', allocs: [
+    { aid: '45419832', inv: '609128', amt: 60.03, date: '24/12/2025', bp: '202512', account: 'TMC Trailers CHC' },
+    { aid: '45419791', inv: '683267', amt: 40.00, date: '27/12/2025', bp: '202601', account: 'TMC Trailers AKL' },
   ] },
-  { date: '24/12/2025', id: '00304755', recv: 100.03, applied: 100.03, account: 'NZC - TMC Trailers AKL', allocs: [{ aid: '45419651', inv: '756655', amt: 100.03, date: '24/12/2025', bp: '202512', account: 'NZC - TMC Trailers AKL' }] },
-  { date: '16/12/2025', id: '00298441', recv: 56.12, applied: 56.12, account: 'NZC - TMC Trailers CHC', allocs: [{ aid: '45398204', inv: '701230', amt: 56.12, date: '16/12/2025', bp: '202511', account: 'NZC - TMC Trailers CHC' }] },
-  { date: '16/12/2025', id: '00298430', recv: 30.56, applied: 30.56, account: 'NZC - TMC Trailers WLG', allocs: [{ aid: '45397986', inv: '698811', amt: 30.56, date: '19/12/2025', bp: '202511', account: 'NZC - TMC Trailers WLG' }] },
-  { date: '12/12/2025', id: '00295610', recv: 215.40, applied: 215.40, account: 'NZC - TMC Trailers WLG', allocs: [
-    { aid: '45381002', inv: '711003', amt: 85.40, date: '12/12/2025', bp: '202512', account: 'NZC - TMC Trailers WLG' },
-    { aid: '45381003', inv: '698200', amt: 90.00, date: '15/12/2025', bp: '202511', account: 'NZC - TMC Trailers AKL' },
-    { aid: '45381004', inv: '703450', amt: 40.00, date: '15/12/2025', bp: '202511', account: 'NZC - TMC Trailers CHC' },
+  { date: '24/12/2025', id: '00304755', recv: 100.03, applied: 100.03, account: 'TMC Trailers AKL', allocs: [{ aid: '45419651', inv: '756655', amt: 100.03, date: '24/12/2025', bp: '202512', account: 'TMC Trailers AKL' }] },
+  { date: '16/12/2025', id: '00298441', recv: 56.12, applied: 56.12, account: 'TMC Trailers CHC', allocs: [{ aid: '45398204', inv: '701230', amt: 56.12, date: '16/12/2025', bp: '202511', account: 'TMC Trailers CHC' }] },
+  { date: '16/12/2025', id: '00298430', recv: 30.56, applied: 30.56, account: 'TMC Trailers WLG', allocs: [{ aid: '45397986', inv: '698811', amt: 30.56, date: '19/12/2025', bp: '202511', account: 'TMC Trailers WLG' }] },
+  { date: '12/12/2025', id: '00295610', recv: 215.40, applied: 215.40, account: 'TMC Trailers WLG', allocs: [
+    { aid: '45381002', inv: '711003', amt: 85.40, date: '12/12/2025', bp: '202512', account: 'TMC Trailers WLG' },
+    { aid: '45381003', inv: '698200', amt: 90.00, date: '15/12/2025', bp: '202511', account: 'TMC Trailers AKL' },
+    { aid: '45381004', inv: '703450', amt: 40.00, date: '15/12/2025', bp: '202511', account: 'TMC Trailers CHC' },
   ] },
-  { date: '09/12/2025', id: '00293880', recv: 180.00, applied: 142.75, account: 'NZC - TMC Trailers AKL', allocs: [
-    { aid: '45371540', inv: '695100', amt: 75.00, date: '09/12/2025', bp: '202511', account: 'NZC - TMC Trailers AKL' },
-    { aid: '45371541', inv: '701880', amt: 67.75, date: '11/12/2025', bp: '202511', account: 'NZC - TMC Trailers WLG' },
+  { date: '09/12/2025', id: '00293880', recv: 180.00, applied: 142.75, account: 'TMC Trailers AKL', allocs: [
+    { aid: '45371540', inv: '695100', amt: 75.00, date: '09/12/2025', bp: '202511', account: 'TMC Trailers AKL' },
+    { aid: '45371541', inv: '701880', amt: 67.75, date: '11/12/2025', bp: '202511', account: 'TMC Trailers WLG' },
   ] },
-  { date: '05/12/2025', id: '00291900', recv: 10.77, applied: 0, account: 'NZC - TMC Trailers CHC', allocs: [] },
-  { date: '05/12/2025', id: '00291847', recv: 2.59, applied: 2.59, account: 'NZC - TMC Trailers CHC', allocs: [{ aid: '45361349', inv: '690795', amt: 2.59, date: '05/12/2025', bp: '202511', account: 'NZC - TMC Trailers CHC' }] },
-  { date: '05/12/2025', id: '00291831', recv: 50.80, applied: 50.80, account: 'NZC - TMC Trailers AKL', allocs: [{ aid: '45361187', inv: '704789', amt: 50.80, date: '06/12/2025', bp: '202511', account: 'NZC - TMC Trailers AKL' }] },
-  { date: '05/12/2025', id: '00291802', recv: 39.44, applied: 25.44, account: 'NZC - TMC Trailers CHC', allocs: [{ aid: '45360943', inv: '609128', amt: 25.44, date: '05/12/2025', bp: '202511', account: 'NZC - TMC Trailers CHC' }] },
+  { date: '05/12/2025', id: '00291900', recv: 10.77, applied: 0, account: 'TMC Trailers CHC', allocs: [] },
+  { date: '05/12/2025', id: '00291847', recv: 2.59, applied: 2.59, account: 'TMC Trailers CHC', allocs: [{ aid: '45361349', inv: '690795', amt: 2.59, date: '05/12/2025', bp: '202511', account: 'TMC Trailers CHC' }] },
+  { date: '05/12/2025', id: '00291831', recv: 50.80, applied: 50.80, account: 'TMC Trailers AKL', allocs: [{ aid: '45361187', inv: '704789', amt: 50.80, date: '06/12/2025', bp: '202511', account: 'TMC Trailers AKL' }] },
+  { date: '05/12/2025', id: '00291802', recv: 39.44, applied: 25.44, account: 'TMC Trailers CHC', allocs: [{ aid: '45360943', inv: '609128', amt: 25.44, date: '05/12/2025', bp: '202511', account: 'TMC Trailers CHC' }] },
 ];
 
 const invData = [
@@ -42,7 +42,7 @@ const agingBuckets = [
 ];
 
 const s = {
-  page: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fff', padding: '1.5rem', color: '#1a1a1a', fontSize: '13px' },
+  page: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fff', padding: '1.5rem 6rem', color: '#1a1a1a', fontSize: '13px' },
   secHead: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' },
   secIcon: { width: '14px', height: '14px', background: '#d0e8f7', borderRadius: '3px', flexShrink: 0 },
   secTitle: { fontSize: '15px', fontWeight: 500, color: '#1a1a1a' },
@@ -259,56 +259,57 @@ export default function PaymentsAgingPrototype() {
         </div>
       </div>
 
-      <hr style={s.divider} />
+      {false && <>
+        <hr style={s.divider} />
 
-      {/* Payments section */}
-      <div style={s.section}>
-        <div style={s.secHead}>
-          <span style={s.secIcon} />
-          <span style={s.secTitle}>Payments</span>
-          <div style={s.secActions}>
-            <button style={s.btn}>&#8595; Export</button>
-            <button style={s.btn}>•••</button>
+        {/* Payments section */}
+        <div style={s.section}>
+          <div style={s.secHead}>
+            <span style={s.secIcon} />
+            <span style={s.secTitle}>Payments</span>
+            <div style={s.secActions}>
+              <button style={s.btn}>&#8595; Export</button>
+              <button style={s.btn}>•••</button>
+            </div>
+          </div>
+
+          <div style={s.tblWrap}>
+            <table style={s.table}>
+              <colgroup>
+                <col style={{ width: '96px' }} /><col style={{ width: '76px' }} /><col style={{ width: '110px' }} />
+                <col style={{ width: '110px' }} /><col style={{ width: '110px' }} /><col style={{ width: '186px' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th style={s.th}>Date</th>
+                  <th style={s.th}>Period</th>
+                  <th style={s.th}>ID</th>
+                  <th style={s.thR}>Amount</th>
+                  <th style={s.thR}>Allocated</th>
+                  <th style={s.th}>Lockbox record</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invData.map((p, i) => (
+                  <tr key={p.id}>
+                    <td style={{ ...s.td, fontSize: '12px', color: '#666', borderBottom: i === invData.length - 1 ? 'none' : undefined }}>{p.date}</td>
+                    <td style={{ ...s.td, borderBottom: i === invData.length - 1 ? 'none' : undefined }}><span style={s.bpTag}>{p.bp}</span></td>
+                    <td style={{ ...s.td, borderBottom: i === invData.length - 1 ? 'none' : undefined }}>
+                      <a style={s.link} href="#">{p.id}</a>
+                    </td>
+                    <td style={{ ...s.tdR, color: '#27500A', fontWeight: 500, borderBottom: i === invData.length - 1 ? 'none' : undefined }}>${p.amount.toFixed(2)}</td>
+                    <td style={{ ...s.tdR, color: '#666', borderBottom: i === invData.length - 1 ? 'none' : undefined }}>${p.allocated.toFixed(2)}</td>
+                    <td style={{ ...s.td, borderBottom: i === invData.length - 1 ? 'none' : undefined }}>
+                      <span style={s.typeLbx}>LBX</span>
+                      <a style={s.linkOrigin} href="#">{p.lockbox}</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <div style={s.tblWrap}>
-          <table style={s.table}>
-            <colgroup>
-              <col style={{ width: '96px' }} /><col style={{ width: '76px' }} /><col style={{ width: '110px' }} />
-              <col style={{ width: '110px' }} /><col style={{ width: '110px' }} /><col style={{ width: '186px' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th style={s.th}>Date</th>
-                <th style={s.th}>Period</th>
-                <th style={s.th}>ID</th>
-                <th style={s.thR}>Amount</th>
-                <th style={s.thR}>Allocated</th>
-                <th style={s.th}>Lockbox record</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invData.map((p, i) => (
-                <tr key={p.id}>
-                  <td style={{ ...s.td, fontSize: '12px', color: '#666', borderBottom: i === invData.length - 1 ? 'none' : undefined }}>{p.date}</td>
-                  <td style={{ ...s.td, borderBottom: i === invData.length - 1 ? 'none' : undefined }}><span style={s.bpTag}>{p.bp}</span></td>
-                  <td style={{ ...s.td, borderBottom: i === invData.length - 1 ? 'none' : undefined }}>
-                    <span style={s.typePmt}>PMT</span>
-                    <a style={s.link} href="#">{p.id}</a>
-                  </td>
-                  <td style={{ ...s.tdR, color: '#27500A', fontWeight: 500, borderBottom: i === invData.length - 1 ? 'none' : undefined }}>${p.amount.toFixed(2)}</td>
-                  <td style={{ ...s.tdR, color: '#666', borderBottom: i === invData.length - 1 ? 'none' : undefined }}>${p.allocated.toFixed(2)}</td>
-                  <td style={{ ...s.td, borderBottom: i === invData.length - 1 ? 'none' : undefined }}>
-                    <span style={s.typeLbx}>LBX</span>
-                    <a style={s.linkOrigin} href="#">{p.lockbox}</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </>}
     </div>
   );
 }
