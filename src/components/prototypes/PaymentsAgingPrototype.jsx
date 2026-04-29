@@ -49,7 +49,7 @@ const s = {
   secActions: { marginLeft: 'auto', display: 'flex', gap: '6px' },
   btn: { fontSize: '12px', padding: '4px 10px', border: '0.5px solid #d4d4d4', borderRadius: '5px', background: 'transparent', color: '#666', cursor: 'pointer' },
   section: { marginBottom: '2rem' },
-  agingRow: { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px', marginBottom: '20px' },
+  agingRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' },
   ab: { borderRadius: '5px', padding: '10px 12px', border: '0.5px solid #e0e0e0', background: '#f7f7f7' },
   abWarn: { borderRadius: '5px', padding: '10px 12px', border: '0.5px solid #FAC775', background: '#FAEEDA' },
   abSevere: { borderRadius: '5px', padding: '10px 12px', border: '0.5px solid #F09595', background: '#FCEBEB' },
@@ -61,7 +61,7 @@ const s = {
   abCountWarn: { fontSize: '11px', color: '#854F0B', marginTop: '2px' },
   abCountSevere: { fontSize: '11px', color: '#A32D2D', marginTop: '2px' },
   tblWrap: { border: '0.5px solid #e0e0e0', borderRadius: '5px', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: '13px' },
+  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', fontSize: '13px' },
   th: { fontSize: '11px', fontWeight: 500, color: '#888', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '7px 10px', background: '#f7f7f7', borderBottom: '0.5px solid #e0e0e0', textAlign: 'left' },
   thR: { fontSize: '11px', fontWeight: 500, color: '#888', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '7px 10px', background: '#f7f7f7', borderBottom: '0.5px solid #e0e0e0', textAlign: 'right' },
   td: { padding: '9px 10px', borderBottom: '0.5px solid #e8e8e8', color: '#1a1a1a', verticalAlign: 'middle' },
@@ -148,12 +148,7 @@ function PARow({ row, isOpen, onToggle }) {
       {isOpen && hasAllocs && (
         <tr>
           <td colSpan={9} style={{ padding: 0, borderBottom: '0.5px solid #e0e0e0' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '28px' }} /><col style={{ width: '96px' }} /><col style={{ width: '76px' }} />
-                <col style={{ width: '124px' }} /><col style={{ width: '130px' }} /><col style={{ width: '110px' }} />
-                <col style={{ width: '90px' }} /><col style={{ width: '86px' }} /><col style={{ width: '86px' }} />
-              </colgroup>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
               <tbody>
                 {row.allocs.map(a => {
                   const diff = a.account !== row.account;
@@ -217,45 +212,46 @@ export default function PaymentsAgingPrototype() {
           <span style={s.secTitle}>Payments and aging</span>
         </div>
 
-        <div style={s.agingRow}>
-          {agingBuckets.map(b => (
-            <AgingBucket key={b.label} label={b.label} amount={b.amount} count={b.count} variant={b.style} amtColor={b.amtColor} />
-          ))}
-        </div>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+          {/* Table — 2/3 */}
+          <div style={{ flex: '2', minWidth: 0 }}>
+            <div style={s.tblWrap}>
+              <table style={s.table}>
+                <thead>
+                  <tr>
+                    <th style={s.th}></th>
+                    <th style={s.th}>Date</th>
+                    <th style={s.th}>Period</th>
+                    <th style={s.th}>Status</th>
+                    <th style={s.th}>Account</th>
+                    <th style={s.th}>ID</th>
+                    <th style={s.thR}>Total amount</th>
+                    <th style={s.thR}>Allocated</th>
+                    <th style={s.thR}>Unallocated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paData.map(row => (
+                    <PARow key={row.id} row={row} isOpen={openRows.has(row.id)} onToggle={toggleRow} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        <div style={s.tblWrap}>
-          <table style={s.table}>
-            <colgroup>
-              <col style={{ width: '28px' }} /><col style={{ width: '96px' }} /><col style={{ width: '76px' }} />
-              <col style={{ width: '124px' }} /><col style={{ width: '130px' }} /><col style={{ width: '110px' }} />
-              <col style={{ width: '90px' }} /><col style={{ width: '86px' }} /><col style={{ width: '86px' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th style={s.th}></th>
-                <th style={s.th}>Date</th>
-                <th style={s.th}>Period</th>
-                <th style={s.th}>Status</th>
-                <th style={s.th}>Account</th>
-                <th style={s.th}>ID</th>
-                <th style={s.thR}>Total amount</th>
-                <th style={s.thR}>Allocated</th>
-                <th style={s.thR}>Unallocated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paData.map(row => (
-                <PARow key={row.id} row={row} isOpen={openRows.has(row.id)} onToggle={toggleRow} />
+            <div style={s.pag}>
+              {[1, 2, 3].map(p => (
+                <button key={p} style={p === page ? s.pbtnOn : s.pbtn} onClick={() => setPage(p)}>{p}</button>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <span style={{ marginLeft: '8px' }}>Showing 1 – 10 of 25</span>
+            </div>
+          </div>
 
-        <div style={s.pag}>
-          {[1, 2, 3].map(p => (
-            <button key={p} style={p === page ? s.pbtnOn : s.pbtn} onClick={() => setPage(p)}>{p}</button>
-          ))}
-          <span style={{ marginLeft: '8px' }}>Showing 1 – 10 of 25</span>
+          {/* Aging buckets — 1/3 */}
+          <div style={{ flex: '1', ...s.agingRow }}>
+            {agingBuckets.map(b => (
+              <AgingBucket key={b.label} label={b.label} amount={b.amount} count={b.count} variant={b.style} amtColor={b.amtColor} />
+            ))}
+          </div>
         </div>
       </div>
 
