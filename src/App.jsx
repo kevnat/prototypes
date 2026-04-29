@@ -9,6 +9,7 @@ import LockboxValidationScreen from './components/prototypes/LockboxValidationSc
 import EnhancedLockboxPrototype from './components/prototypes/EnhancedLockboxPrototype';
 import ApiDocsPrototype from './components/prototypes/ApiDocsPrototype';
 import PaymentsOpsDashboard from './components/prototypes/PaymentsOpsDashboard';
+import PaymentsAgingPrototype from './components/prototypes/PaymentsAgingPrototype';
 // import AnalyticsDashboard from './components/prototypes/AnalyticsDashboard';
 
 function App() {
@@ -37,6 +38,9 @@ function App() {
         </Route>
         <Route path="/prototypes/payments-ops" element={<PrototypeLayout />}>
           <Route index element={<PaymentsOpsDashboard />} />
+        </Route>
+        <Route path="/prototypes/payments-aging" element={<PrototypeLayout />}>
+          <Route index element={<PaymentsAgingPrototype />} />
         </Route>
         <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
           <Route index element={<ApiDocsPrototype />} />

@@ -133,6 +133,24 @@ let prototypeData = [
       insights: 'Single-page finance view with date-range filtering across all payment metrics'
     },
     {
+      id: 'payments-aging',
+      title: 'Payments & Aging',
+      description: 'Customer-level payments and aging view with expandable lockbox allocations, cross-account allocation highlighting, and aging buckets',
+      category: 'Payments',
+      status: 'early',
+      priority: 'high',
+      lastUpdated: '2026-04-28',
+      author: 'Product Team',
+      comments: 0,
+      tags: ['payments', 'aging', 'lockbox', 'allocation', 'receivables'],
+      thumbnail: '🧾',
+      progress: 30,
+      route: '/prototypes/payments-aging',
+      featured: true,
+      screenshot: '/images/allocation_dashboard.png',
+      insights: 'Compact aging + payment detail view with expandable allocation rows'
+    },
+    {
       id: 'api-docs',
       title: 'Payment Links API Documentation',
       description: 'Interactive API documentation for the Pay By Link Public API with Swagger UI',

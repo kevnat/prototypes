@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;padding:1.5rem;color:#1a1a1a}
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sec-icon{width:14px;height:14px;background:#d0e8f7;border-radius:3px;flex-shrink:0}
+.sec-title{font-size:15px;font-weight:500;color:#1a1a1a}
+.sec-actions{margin-left:auto;display:flex;gap:6px}
+.btn{font-size:12px;padding:4px 10px;border:0.5px solid #d4d4d4;border-radius:5px;background:transparent;color:#666;cursor:pointer}
+.section{margin-bottom:2rem}
+.aging-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:20px}
+.ab{border-radius:5px;padding:10px 12px;border:0.5px solid #e0e0e0;background:#f7f7f7}
+.ab-label{font-size:11px;color:#888;margin-bottom:3px}
+.ab-amt{font-size:17px;font-weight:500;color:#1a1a1a}
+.ab-count{font-size:11px;color:#aaa;margin-top:2px}
+.ab.warn{background:#FAEEDA;border-color:#FAC775}
+.ab.warn .ab-label,.ab.warn .ab-count{color:#854F0B}
+.ab.warn .ab-amt{color:#633806}
+.ab.severe{background:#FCEBEB;border-color:#F09595}
+.ab.severe .ab-label,.ab.severe .ab-count{color:#A32D2D}
+.ab.severe .ab-amt{color:#791F1F}
+.tbl-wrap{border:0.5px solid #e0e0e0;border-radius:5px;overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
+th{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.04em;padding:7px 10px;background:#f7f7f7;border-bottom:0.5px solid #e0e0e0;text-align:left}
+th.r,td.r{text-align:right}
+td{padding:9px 10px;border-bottom:0.5px solid #e8e8e8;color:#1a1a1a;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.pmt-row{cursor:pointer}
+.pmt-row:hover td{background:#f7f7f7}
+.expand-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid #bbb;border-radius:3px;font-size:13px;line-height:1;color:#666;background:#fff;cursor:pointer;user-select:none}
+.expand-btn.open{background:#f0f0f0;color:#333}
+.no-expand{width:16px;height:16px;display:inline-block}
+.link{color:#1a6fa8;font-size:12px;text-decoration:none}
+.link:hover{text-decoration:underline}
+.link-sm{color:#1a6fa8;font-size:12px;text-decoration:none}
+.link-sm:hover{text-decoration:underline}
+.link-origin{color:#1a6fa8;font-size:12px;text-decoration:none;font-weight:500}
+.link-origin:hover{text-decoration:underline}
+.amt-pos{color:#27500A;font-weight:500}
+.amt-neg{color:#A32D2D;font-weight:500}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.b-full{background:#EAF3DE;color:#3B6D11}
+.b-partial{background:#FAEEDA;color:#854F0B}
+.b-unalloc{background:#FAECE7;color:#993C1D}
+.b-credit{background:#EEEDFE;color:#3C3489}
+.alloc-group td{background:#f7f7f7;border-bottom:0.5px solid #e8e8e8}
+.alloc-group.diff-acct td{background:#FEFAF4;border-bottom:0.5px solid #F0D9B0}
+.alloc-group.diff-acct td:first-child{border-left:3px solid #E8A020}
+.unalloc-row td{background:#FFF8F6}
+.unalloc-amt{font-size:12px;color:#993C1D;text-align:right;font-weight:500}
+.bp-tag{display:inline-block;font-size:12px;background:#EEF2F7;color:#4A6080;border-radius:3px;padding:2px 6px;font-variant-numeric:tabular-nums}
+.type-lbx{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;background:#E8F0FE;color:#1a56b0;letter-spacing:0.03em;margin-right:5px;vertical-align:middle}
+.type-pmt{display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;background:#E8F5E9;color:#2E7D32;letter-spacing:0.03em;margin-right:5px;vertical-align:middle}
+.pag{display:flex;align-items:center;gap:6px;padding:10px 0 0;font-size:12px;color:#888}
+.pbtn{padding:3px 8px;border:0.5px solid #d4d4d4;border-radius:5px;background:transparent;cursor:pointer;color:#1a1a1a;font-size:12px}
+.pbtn.on{background:#E6F1FB;color:#185FA5;border-color:#85B7EB}
+.divider{border:none;border-top:0.5px solid #e0e0e0;margin:2rem 0}
+</style>
+</head>
+<body>
+
+<div class="section">
+  <div class="sec-head">
+    <span class="sec-icon"></span>
+    <span class="sec-title">Payments and aging</span>
+  </div>
+
+  <div class="aging-row">
+    <div class="ab"><div class="ab-label">Current</div><div class="ab-amt" style="color:#A32D2D">($10.77)</div><div class="ab-count">Credit balance</div></div>
+    <div class="ab"><div class="ab-label">0 – 30 days</div><div class="ab-amt">$0.00</div><div class="ab-count">0 invoices</div></div>
+    <div class="ab"><div class="ab-label">31 – 60 days</div><div class="ab-amt">$0.00</div><div class="ab-count">0 invoices</div></div>
+    <div class="ab"><div class="ab-label">61 – 90 days</div><div class="ab-amt">$0.00</div><div class="ab-count">0 invoices</div></div>
+    <div class="ab warn"><div class="ab-label">91 – 120 days</div><div class="ab-amt">$64.30</div><div class="ab-count">2 invoices</div></div>
+    <div class="ab severe"><div class="ab-label">Over 120 days</div><div class="ab-amt">$86.68</div><div class="ab-count">3 invoices</div></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <colgroup>
+        <col style="width:28px">
+        <col style="width:96px">
+        <col style="width:76px">
+        <col style="width:124px">
+        <col style="width:130px">
+        <col style="width:110px">
+        <col style="width:90px">
+        <col style="width:86px">
+        <col style="width:86px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Date</th>
+          <th>Period</th>
+          <th>Status</th>
+          <th>Account</th>
+          <th>ID</th>
+          <th class="r">Total amount</th>
+          <th class="r">Allocated</th>
+          <th class="r">Unallocated</th>
+        </tr>
+      </thead>
+      <tbody id="pa-tbody"></tbody>
+    </table>
+  </div>
+  <div class="pag">
+    <button class="pbtn on">1</button>
+    <button class="pbtn">2</button>
+    <button class="pbtn">3</button>
+    <span style="margin-left:8px">Showing 1 – 10 of 25</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<div class="section">
+  <div class="sec-head">
+    <span class="sec-icon"></span>
+    <span class="sec-title">Payments</span>
+    <div class="sec-actions">
+      <button class="btn">&#8595; Export</button>
+      <button class="btn">•••</button>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <colgroup>
+        <col style="width:96px">
+        <col style="width:76px">
+        <col style="width:110px">
+        <col style="width:110px">
+        <col style="width:110px">
+        <col style="width:186px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Period</th>
+          <th>ID</th>
+          <th class="r">Amount</th>
+          <th class="r">Allocated</th>
+          <th>Lockbox record</th>
+        </tr>
+      </thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const paData=[
+  {date:"26/12/2025",id:"00304991",recv:-56.12,applied:-56.12,account:"NZC - TMC Trailers CHC",allocs:[{aid:"45426481",inv:"690795",amt:-56.12,date:"26/12/2025",bp:"202512",account:"NZC - TMC Trailers CHC"}]},
+  {date:"26/12/2025",id:"00304812",recv:-30.56,applied:-30.56,account:"NZC - TMC Trailers CHC",allocs:[{aid:"45426274",inv:"704789",amt:-30.56,date:"28/12/2025",bp:"202512",account:"NZC - TMC Trailers CHC"}]},
+  {date:"24/12/2025",id:"00304800",recv:100.03,applied:100.03,account:"NZC - TMC Trailers CHC",allocs:[
+    {aid:"45419832",inv:"609128",amt:60.03,date:"24/12/2025",bp:"202512",account:"NZC - TMC Trailers CHC"},
+    {aid:"45419791",inv:"683267",amt:40.00,date:"27/12/2025",bp:"202601",account:"NZC - TMC Trailers AKL"}
+  ]},
+  {date:"24/12/2025",id:"00304755",recv:100.03,applied:100.03,account:"NZC - TMC Trailers AKL",allocs:[{aid:"45419651",inv:"756655",amt:100.03,date:"24/12/2025",bp:"202512",account:"NZC - TMC Trailers AKL"}]},
+  {date:"16/12/2025",id:"00298441",recv:56.12,applied:56.12,account:"NZC - TMC Trailers CHC",allocs:[{aid:"45398204",inv:"701230",amt:56.12,date:"16/12/2025",bp:"202511",account:"NZC - TMC Trailers CHC"}]},
+  {date:"16/12/2025",id:"00298430",recv:30.56,applied:30.56,account:"NZC - TMC Trailers WLG",allocs:[{aid:"45397986",inv:"698811",amt:30.56,date:"19/12/2025",bp:"202511",account:"NZC - TMC Trailers WLG"}]},
+  {date:"05/12/2025",id:"00291900",recv:10.77,applied:0,account:"NZC - TMC Trailers CHC",allocs:[]},
+  {date:"05/12/2025",id:"00291847",recv:2.59,applied:2.59,account:"NZC - TMC Trailers CHC",allocs:[{aid:"45361349",inv:"690795",amt:2.59,date:"05/12/2025",bp:"202511",account:"NZC - TMC Trailers CHC"}]},
+  {date:"05/12/2025",id:"00291831",recv:50.80,applied:50.80,account:"NZC - TMC Trailers AKL",allocs:[{aid:"45361187",inv:"704789",amt:50.80,date:"06/12/2025",bp:"202511",account:"NZC - TMC Trailers AKL"}]},
+  {date:"05/12/2025",id:"00291802",recv:39.44,applied:25.44,account:"NZC - TMC Trailers CHC",allocs:[{aid:"45360943",inv:"609128",amt:25.44,date:"05/12/2025",bp:"202511",account:"NZC - TMC Trailers CHC"}]},
+];
+
+const invData=[
+  {date:"05/12/2025",id:"45361349",bp:"202511",amount:2.59,allocated:2.59,lockbox:"00291847"},
+  {date:"05/12/2025",id:"45361187",bp:"202511",amount:50.80,allocated:50.80,lockbox:"00291831"},
+  {date:"05/12/2025",id:"45360943",bp:"202511",amount:39.44,allocated:25.44,lockbox:"00291802"},
+  {date:"16/12/2025",id:"45398204",bp:"202511",amount:56.12,allocated:56.12,lockbox:"00304112"},
+];
+
+const open=new Set();
+
+function f(n){
+  if(Math.abs(n)<0.005) return '—';
+  return n<0?'($'+Math.abs(n).toFixed(2)+')':'$'+n.toFixed(2);
+}
+
+function badge(p){
+  const u=+(p.recv-p.applied).toFixed(2);
+  if(p.recv<0) return '<span class="badge b-credit">Credit</span>';
+  if(Math.abs(u)<0.005) return '<span class="badge b-full">Fully allocated</span>';
+  if(p.applied===0) return '<span class="badge b-unalloc">Unallocated</span>';
+  return '<span class="badge b-partial">Partially allocated</span>';
+}
+
+function renderPA(){
+  let h='';
+  paData.forEach((p)=>{
+    const u=+(p.recv-p.applied).toFixed(2);
+    const isOpen=open.has(p.id);
+    const hasAllocs=p.allocs.length>0||u>0.005;
+    const totalClass=p.recv<0?'amt-neg':'amt-pos';
+    const bps=[...new Set(p.allocs.map(a=>a.bp))];
+
+    h+=`<tr class="pmt-row" onclick="togglePA('${p.id}')">
+      <td style="padding:9px 8px;text-align:center">
+        ${hasAllocs
+          ?`<span class="expand-btn${isOpen?' open':''}">${isOpen?'−':'+'}</span>`
+          :`<span class="no-expand"></span>`}
+      </td>
+      <td style="font-size:12px;color:#666">${p.date}</td>
+      <td>${bps.map(b=>`<span class="bp-tag">${b}</span>`).join('<br style="margin:2px 0">')}</td>
+      <td>${badge(p)}</td>
+      <td style="font-size:12px;color:#1a1a1a">${p.account}</td>
+      <td><span class="type-lbx">LBX</span><a class="link-origin" href="#">${p.id}</a></td>
+      <td class="r ${totalClass}">${f(p.recv)}</td>
+      <td class="r" style="color:#666">${p.applied===0?'—':f(p.applied)}</td>
+      <td class="r" style="color:${u>0.005?'#993C1D':'#aaa'};font-weight:${u>0.005?500:400}">${u>0.005?f(u):'—'}</td>
+    </tr>`;
+
+    if(isOpen&&hasAllocs){
+      h+=`<tr><td colspan="9" style="padding:0;border-bottom:0.5px solid #e0e0e0">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup><col style="width:28px"><col style="width:96px"><col style="width:76px"><col style="width:124px"><col style="width:130px"><col style="width:110px"><col style="width:90px"><col style="width:86px"><col style="width:86px"></colgroup>
+        <tbody>`;
+      p.allocs.forEach(a=>{
+        const diff=a.account!==p.account;
+        h+=`<tr class="alloc-group${diff?' diff-acct':''}">
+          <td></td>
+          <td style="font-size:12px;color:#666;padding-left:16px">${a.date}</td>
+          <td><span class="bp-tag">${a.bp}</span></td>
+          <td><div style="font-size:11px;color:#aaa">Inv #${a.inv}</div></td>
+          <td style="font-size:12px;color:${diff?'#854F0B':'#aaa'};font-weight:${diff?500:400}">${diff?a.account:'—'}</td>
+          <td style="padding-left:16px"><span class="type-pmt">PMT</span><a class="link-sm" href="#">${a.aid}</a></td>
+          <td></td>
+          <td class="r" style="font-size:12px;color:#666">${f(a.amt)}</td>
+          <td></td>
+        </tr>`;
+      });
+      if(u>0.005){
+        h+=`<tr class="unalloc-row alloc-group">
+          <td></td>
+          <td style="padding-left:16px;font-size:12px;color:#993C1D">—</td>
+          <td></td>
+          <td style="font-size:11px;color:#993C1D">No invoice yet</td>
+          <td></td><td></td><td></td>
+          <td class="unalloc-amt">${f(u)}</td>
+          <td></td>
+        </tr>`;
+      }
+      h+=`</tbody></table></td></tr>`;
+    }
+  });
+  document.getElementById('pa-tbody').innerHTML=h;
+}
+
+function togglePA(id){
+  open.has(id)?open.delete(id):open.add(id);
+  renderPA();
+}
+
+function renderInv(){
+  let h='';
+  invData.forEach(p=>{
+    h+=`<tr>
+      <td style="font-size:12px;color:#666">${p.date}</td>
+      <td><span class="bp-tag">${p.bp}</span></td>
+      <td><span class="type-pmt">PMT</span><a class="link" href="#">${p.id}</a></td>
+      <td class="r amt-pos">$${p.amount.toFixed(2)}</td>
+      <td class="r" style="color:#666">$${p.allocated.toFixed(2)}</td>
+      <td><span class="type-lbx">LBX</span><a class="link-origin" href="#">${p.lockbox}</a></td>
+    </tr>`;
+  });
+  document.getElementById('inv-tbody').innerHTML=h;
+}
+
+renderPA();
+renderInv();
+</script>
+</body>
+</html>
