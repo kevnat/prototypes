@@ -32,6 +32,33 @@ const invData = [
   { date: '16/12/2025', id: '45398204', bp: '202511', amount: 56.12, allocated: 56.12, lockbox: '00304112' },
 ];
 
+const stories = [
+  {
+    id: 1,
+    ticket: 'PAY-9561',
+    title: 'View payment allocations inline',
+    description: 'Allocation records are grouped as expandable child rows under their parent payment, eliminating the need to cross-reference a separate table.',
+  },
+  {
+    id: 2,
+    ticket: 'PAY-9562',
+    title: 'Identify allocation status at a glance',
+    description: 'An inline status badge on each payment row shows whether it is fully allocated, partially allocated, unallocated, or a credit — without requiring the second table.',
+  },
+  {
+    id: 3,
+    ticket: 'PAY-9563',
+    title: 'Identify payments allocated across multiple accounts',
+    description: 'Child rows allocated to a different account than the parent are visually distinguished. Same-account rows suppress the account name to reduce noise.',
+  },
+  {
+    id: 4,
+    ticket: 'PAY-9564',
+    title: 'See the unallocated remainder inline',
+    description: 'When a payment is partially applied, the outstanding amount surfaces as an explicit child row when expanded, showing the amount with no invoice assigned.',
+  },
+];
+
 const agingBuckets = [
   { label: 'Current', amount: '($10.77)', count: 'Credit balance', style: 'normal', amtColor: '#A32D2D' },
   { label: '0 – 30 days', amount: '$0.00', count: '0 invoices', style: 'normal', amtColor: '#1a1a1a' },
@@ -105,6 +132,59 @@ function AgingBucket({ label, amount, count, variant, amtColor }) {
       <div style={{ ...s.abAmt, color: amtColor }}>{amount}</div>
       <div style={countStyle}>{count}</div>
     </div>
+  );
+}
+
+function StoryBadge({ number, openId, setOpenId, align = 'left' }) {
+  const isOpen = openId === number;
+  const story = stories.find(s => s.id === number);
+  return (
+    <span style={{ position: 'relative', display: 'inline-block', marginLeft: '5px', verticalAlign: 'middle' }}>
+      <span
+        onClick={e => { e.stopPropagation(); setOpenId(isOpen ? null : number); }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: '15px', height: '15px', borderRadius: '50%',
+          background: isOpen ? '#1a56b0' : '#E8F0FE',
+          color: isOpen ? '#fff' : '#1a56b0',
+          fontSize: '9px', fontWeight: 700,
+          cursor: 'pointer', userSelect: 'none',
+          border: '1px solid #b8d0f5', flexShrink: 0,
+          transition: 'background 0.15s, color 0.15s',
+          boxShadow: isOpen ? '0 0 0 3px rgba(251,191,36,0.7)' : '0 0 0 2px rgba(251,191,36,0.45)',
+        }}
+      >
+        {number}
+      </span>
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '20px', ...(align === 'right' ? { right: '0' } : { left: '0' }), zIndex: 200,
+          background: '#fff', border: '0.5px solid #d4d4d4',
+          borderRadius: '6px', padding: '10px 12px',
+          width: '230px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+          textTransform: 'none', letterSpacing: 'normal',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: '#1a56b0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Story {number}</span>
+            <a
+              href={`https://billingplatform.atlassian.net/browse/${story.ticket}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{ fontSize: '10px', color: '#1a56b0', textDecoration: 'none', fontWeight: 600, fontFamily: 'monospace' }}
+            >
+              {story.ticket} ↗
+            </a>
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a', marginBottom: '5px', lineHeight: 1.4 }}>
+            {story.title}
+          </div>
+          <div style={{ fontSize: '11px', color: '#666', lineHeight: 1.6 }}>
+            {story.description}
+          </div>
+        </div>
+      )}
+    </span>
   );
 }
 
@@ -194,6 +274,7 @@ function PARow({ row, isOpen, onToggle }) {
 export default function PaymentsAgingPrototype() {
   const [openRows, setOpenRows] = useState(new Set());
   const [page, setPage] = useState(1);
+  const [openStory, setOpenStory] = useState(null);
 
   function toggleRow(id) {
     setOpenRows(prev => {
@@ -219,15 +300,15 @@ export default function PaymentsAgingPrototype() {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={s.th}></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}><StoryBadge number={1} openId={openStory} setOpenId={setOpenStory} /></th>
                     <th style={s.th}>Date</th>
                     <th style={s.th}>Period</th>
-                    <th style={s.th}>Status</th>
-                    <th style={s.th}>Account</th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>Status<StoryBadge number={2} openId={openStory} setOpenId={setOpenStory} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>Account<StoryBadge number={3} openId={openStory} setOpenId={setOpenStory} /></th>
                     <th style={s.th}>ID</th>
                     <th style={s.thR}>Total amount</th>
                     <th style={s.thR}>Allocated</th>
-                    <th style={s.thR}>Unallocated</th>
+                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={4} openId={openStory} setOpenId={setOpenStory} align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
