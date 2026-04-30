@@ -53,6 +53,18 @@ const stories = [
   },
   {
     id: 4,
+    ticket: 'PAY-9565',
+    title: 'Distinguish record types within a shared ID column',
+    description: 'Lockbox records, payment allocations, and credits share a single ID column. A type pill (LBX, PMT, CRD) prefixes each ID so the record type is unambiguous without requiring separate columns or tables.',
+  },
+  {
+    id: 5,
+    ticket: 'PAY-9566',
+    title: 'Total amount reflects the lockbox record received amount',
+    description: 'The Total amount column on each parent row represents the gross amount received on the lockbox record — not a sum of its allocations. Child rows do not repeat this value.',
+  },
+  {
+    id: 6,
     ticket: 'PAY-9564',
     title: 'See the unallocated remainder inline',
     description: 'When a payment is partially applied, the outstanding amount surfaces as an explicit child row when expanded, showing the amount with no invoice assigned.',
@@ -312,10 +324,10 @@ export default function PaymentsAgingPrototype() {
                     <th style={s.th}>Period</th>
                     <th style={{ ...s.th, overflow: 'visible' }}>Status<StoryBadge number={2} /></th>
                     <th style={{ ...s.th, overflow: 'visible' }}>Account<StoryBadge number={3} /></th>
-                    <th style={s.th}>ID</th>
-                    <th style={s.thR}>Total amount</th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>ID<StoryBadge number={4} /></th>
+                    <th style={{ ...s.thR, overflow: 'visible' }}>Total amount<StoryBadge number={5} align="right" /></th>
                     <th style={s.thR}>Allocated</th>
-                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={4} align="right" /></th>
+                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={6} align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>

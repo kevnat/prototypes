@@ -89,7 +89,65 @@ Scenario: Payment with all same-account allocations
 
 ---
 
-## Story 4 — See the unallocated remainder without leaving the payments view
+## Story 4 — Distinguish record types within a shared ID column
+
+The current design uses separate tables for lockbox records and payment allocations, each with their own ID column. In the consolidated view, lockbox records, payment allocations, and credits coexist in a single ID column. A type pill prefixing each ID (LBX, PMT, CRD) makes the record type unambiguous without requiring separate columns or tables.
+
+### Acceptance Criteria
+
+```gherkin
+Scenario: Lockbox record row
+  Given a parent row representing a lockbox record
+  When the row is rendered
+  Then the ID column displays an LBX pill followed by the lockbox record ID
+
+Scenario: Credit record row
+  Given a parent row representing a credit (negative received amount)
+  When the row is rendered
+  Then the ID column displays a CRD pill followed by the credit record ID
+  And the CRD pill is visually distinct from the LBX and PMT pills
+
+Scenario: Payment allocation child row
+  Given an expanded parent row with one or more allocation child rows
+  When the child rows are rendered
+  Then each child row's ID column displays a PMT pill followed by the payment allocation ID
+
+Scenario: Type pills are not part of the ID value
+  Given any row in the table
+  When the ID is displayed
+  Then the type pill is rendered separately from the ID value
+  And the raw ID does not include any LBX-, PMT-, or CRD- prefix
+```
+
+---
+
+## Story 5 — Total amount reflects the lockbox record received amount
+
+The Total amount column represents the gross amount received on the lockbox record — the value as recorded in the bank file. It is not derived from or equal to the sum of allocations. Child rows do not display a value in this column, avoiding the implication that individual allocations contribute to a running total.
+
+### Acceptance Criteria
+
+```gherkin
+Scenario: Total amount on a parent row
+  Given a lockbox record parent row
+  When the row is rendered
+  Then the Total amount column displays the gross received amount from the lockbox record
+
+Scenario: Total amount is independent of allocation sum
+  Given a lockbox record where allocations do not sum to the received amount
+  When the row is rendered
+  Then the Total amount column still reflects the lockbox received amount
+  And not the sum of its child allocation amounts
+
+Scenario: Total amount on child rows
+  Given an expanded parent row with allocation child rows
+  When the child rows are rendered
+  Then the Total amount column is empty on all child rows
+```
+
+---
+
+## Story 6 — See the unallocated remainder without leaving the payments view
 
 When a payment is only partially applied, the outstanding amount is not visible in the current Payments table. The consolidated view surfaces the remainder as an explicit child row ("No invoice yet") when the parent is expanded, alongside the amount still outstanding.
 
