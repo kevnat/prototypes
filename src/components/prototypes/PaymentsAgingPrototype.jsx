@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import StoryMapFrame from '../shared/StoryMapFrame';
+import { useStoryMap } from '../shared/StoryMapContext';
 
 const paData = [
   { date: '24/12/2025', id: '00304800', recv: 100.03, applied: 100.03, account: 'TMC Trailers CHC', allocs: [
@@ -56,6 +58,12 @@ const stories = [
     description: 'When a payment is partially applied, the outstanding amount surfaces as an explicit child row when expanded, showing the amount with no invoice assigned.',
   },
 ];
+
+const epic = {
+  ticket: 'PAY-9560',
+  title: 'Payments and Aging — Table Consolidation',
+  description: 'Consolidate the Payments and Payment Allocations tables into a single expandable view, surfacing allocation status, cross-account splits, and unallocated remainders inline.',
+};
 
 const agingBuckets = [
   { label: 'Current', amount: '($10.77)', count: 'Credit balance', style: 'normal', amtColor: '#A32D2D' },
@@ -133,13 +141,14 @@ function AgingBucket({ label, amount, count, variant, amtColor }) {
   );
 }
 
-function StoryBadge({ number, openId, setOpenId, align = 'left' }) {
-  const isOpen = openId === number;
+function StoryBadge({ number, align = 'left' }) {
+  const { selectedStory, setSelectedStory } = useStoryMap();
+  const isOpen = selectedStory === number;
   const story = stories.find(s => s.id === number);
   return (
     <span style={{ position: 'relative', display: 'inline-block', marginLeft: '5px', verticalAlign: 'middle' }}>
       <span
-        onClick={e => { e.stopPropagation(); setOpenId(isOpen ? null : number); }}
+        onClick={e => { e.stopPropagation(); setSelectedStory(number); }}
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: '15px', height: '15px', borderRadius: '50%',
@@ -272,7 +281,6 @@ function PARow({ row, isOpen, onToggle }) {
 export default function PaymentsAgingPrototype() {
   const [openRows, setOpenRows] = useState(new Set());
   const [page, setPage] = useState(1);
-  const [openStory, setOpenStory] = useState(null);
 
   function toggleRow(id) {
     setOpenRows(prev => {
@@ -283,6 +291,7 @@ export default function PaymentsAgingPrototype() {
   }
 
   return (
+    <StoryMapFrame epic={epic} stories={stories}>
     <div style={s.page}>
       {/* Payments and aging section */}
       <div style={s.section}>
@@ -298,15 +307,15 @@ export default function PaymentsAgingPrototype() {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...s.th, overflow: 'visible' }}><StoryBadge number={1} openId={openStory} setOpenId={setOpenStory} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}><StoryBadge number={1} /></th>
                     <th style={s.th}>Date</th>
                     <th style={s.th}>Period</th>
-                    <th style={{ ...s.th, overflow: 'visible' }}>Status<StoryBadge number={2} openId={openStory} setOpenId={setOpenStory} /></th>
-                    <th style={{ ...s.th, overflow: 'visible' }}>Account<StoryBadge number={3} openId={openStory} setOpenId={setOpenStory} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>Status<StoryBadge number={2} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>Account<StoryBadge number={3} /></th>
                     <th style={s.th}>ID</th>
                     <th style={s.thR}>Total amount</th>
                     <th style={s.thR}>Allocated</th>
-                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={4} openId={openStory} setOpenId={setOpenStory} align="right" /></th>
+                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={4} align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -386,5 +395,6 @@ export default function PaymentsAgingPrototype() {
         </div>
       </>}
     </div>
+    </StoryMapFrame>
   );
 }

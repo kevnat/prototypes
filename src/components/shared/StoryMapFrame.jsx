@@ -1,0 +1,143 @@
+import React, { useState } from 'react';
+import { StoryMapContext } from './StoryMapContext';
+
+const BASE_URL = 'https://billingplatform.atlassian.net/browse';
+
+const f = {
+  wrap: {
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    borderBottom: '1px solid #e4e4e4',
+    background: '#f9fafb',
+  },
+  header: {
+    padding: '10px 6rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    borderBottom: '0.5px solid #e4e4e4',
+  },
+  epicChip: {
+    display: 'inline-block', fontSize: '10px', fontWeight: 700,
+    padding: '2px 7px', borderRadius: '3px',
+    background: '#E8F0FE', color: '#1a56b0', letterSpacing: '0.03em',
+    flexShrink: 0,
+  },
+  ticketLink: {
+    fontSize: '11px', color: '#1a56b0', fontWeight: 600,
+    textDecoration: 'none', fontFamily: 'monospace', flexShrink: 0,
+  },
+  epicTitle: {
+    fontSize: '13px', fontWeight: 600, color: '#1a1a1a', flexShrink: 0,
+  },
+  epicDesc: {
+    fontSize: '12px', color: '#999', flex: 1,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  collapseBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: '#aaa', fontSize: '13px', padding: '0 2px', lineHeight: 1,
+    flexShrink: 0,
+  },
+  cards: {
+    padding: '10px 6rem 12px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
+  },
+};
+
+function StoryCard({ story, isSelected, onSelect }) {
+  return (
+    <div
+      onClick={() => onSelect(story.id)}
+      style={{
+        padding: '9px 11px',
+        borderRadius: '6px',
+        border: isSelected ? '1px solid #1a56b0' : '1px solid #e0e0e0',
+        background: isSelected ? '#EBF3FC' : '#fff',
+        cursor: 'pointer',
+        transition: 'border-color 0.15s, background 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: '15px', height: '15px', borderRadius: '50%', flexShrink: 0,
+          background: isSelected ? '#1a56b0' : '#E8F0FE',
+          color: isSelected ? '#fff' : '#1a56b0',
+          fontSize: '9px', fontWeight: 700,
+          border: '1px solid #b8d0f5',
+          boxShadow: isSelected ? '0 0 0 3px rgba(251,191,36,0.7)' : '0 0 0 2px rgba(251,191,36,0.45)',
+          transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
+        }}>
+          {story.id}
+        </span>
+        <a
+          href={`${BASE_URL}/${story.ticket}`}
+          target="_blank"
+          rel="noreferrer"
+          onClick={e => e.stopPropagation()}
+          style={{ fontSize: '10px', color: '#1a56b0', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
+        >
+          {story.ticket} ↗
+        </a>
+      </div>
+      <div style={{
+        fontSize: '12px', fontWeight: 500, lineHeight: 1.4,
+        color: isSelected ? '#1a1a1a' : '#444',
+      }}>
+        {story.title}
+      </div>
+    </div>
+  );
+}
+
+export default function StoryMapFrame({ epic, stories, children }) {
+  const [selectedStory, setSelectedStory] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
+
+  function handleSelect(id) {
+    setSelectedStory(prev => prev === id ? null : id);
+  }
+
+  return (
+    <StoryMapContext.Provider value={{ selectedStory, setSelectedStory: handleSelect }}>
+      <div style={f.wrap}>
+        {/* Epic header */}
+        <div style={f.header}>
+          <span style={f.epicChip}>EPIC</span>
+          <a
+            href={`${BASE_URL}/${epic.ticket}`}
+            target="_blank"
+            rel="noreferrer"
+            style={f.ticketLink}
+          >
+            {epic.ticket}
+          </a>
+          <span style={{ color: '#ccc', fontSize: '12px' }}>·</span>
+          <span style={f.epicTitle}>{epic.title}</span>
+          <span style={f.epicDesc}>— {epic.description}</span>
+          <button style={f.collapseBtn} onClick={() => setCollapsed(c => !c)}>
+            {collapsed ? '▾' : '▴'}
+          </button>
+        </div>
+
+        {/* Story cards */}
+        {!collapsed && (
+          <div style={f.cards}>
+            {stories.map(story => (
+              <StoryCard
+                key={story.id}
+                story={story}
+                isSelected={selectedStory === story.id}
+                onSelect={handleSelect}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {children}
+    </StoryMapContext.Provider>
+  );
+}
