@@ -329,7 +329,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     onHide={onHide}
                     groomChecks={groomState?.[i.key]}
                     onGroomToggle={onGroomToggle}
-                    onDragOver={e => { e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
+                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
                   />
                 </div>
               ))}
