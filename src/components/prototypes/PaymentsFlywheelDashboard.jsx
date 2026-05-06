@@ -225,7 +225,7 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
   const visibleLabels = (fields.labels || []).filter(l => LABEL_STYLES[l]);
 
   return (
-    <div style={{ ...s.card, ...(isPinned ? s.cardPinned : {}) }}>
+    <div draggable data-key={key} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
       <div style={s.cardTop}>
         <a href={url} target="_blank" rel="noreferrer" style={s.epicKey}>{key}</a>
         <span style={{ ...s.pDot, background: priorityColor(fields.priority?.name) }}
