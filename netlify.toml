@@ -1,0 +1,4 @@
+[[redirects]]
+  from = "/api/jira/*"
+  to   = "/.netlify/functions/jira"
+  status = 200

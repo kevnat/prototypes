@@ -46,10 +46,28 @@ const f = {
   },
 };
 
-function StoryCard({ story, isSelected, onSelect }) {
+// storyKey returns the value used for selection and hotspot matching.
+// sort_order (1-N) is used when present; falls back to id for hardcoded data.
+function storyKey(story) {
+  return story.sort_order ?? story.id;
+}
+
+function StoryCard({ story, isSelected, onSelect, onUpdate }) {
+  const key = storyKey(story);
+
+  function handleTitleBlur(e) {
+    const next = e.currentTarget.textContent.trim();
+    if (next && next !== story.title) onUpdate?.(key, { title: next });
+  }
+
+  function handleDescBlur(e) {
+    const next = e.currentTarget.textContent.trim();
+    if (next && next !== story.description) onUpdate?.(key, { description: next });
+  }
+
   return (
     <div
-      onClick={() => onSelect(story.id)}
+      onClick={() => onSelect(key)}
       style={{
         padding: '9px 11px',
         borderRadius: '6px',
@@ -70,35 +88,60 @@ function StoryCard({ story, isSelected, onSelect }) {
           boxShadow: isSelected ? '0 0 0 3px rgba(251,191,36,0.7)' : '0 0 0 2px rgba(251,191,36,0.45)',
           transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
         }}>
-          {story.id}
+          {key}
         </span>
         <a
-          href={`${BASE_URL}/${story.ticket}`}
+          href={`${BASE_URL}/${story.ticket_key ?? story.ticket}`}
           target="_blank"
           rel="noreferrer"
           onClick={e => e.stopPropagation()}
           style={{ fontSize: '10px', color: '#1a56b0', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
         >
-          {story.ticket} ↗
+          {story.ticket_key ?? story.ticket} ↗
         </a>
       </div>
-      <div style={{
-        fontSize: '12px', fontWeight: 500, lineHeight: 1.4,
-        color: isSelected ? '#1a1a1a' : '#444',
-      }}>
+      <div
+        contentEditable={!!onUpdate}
+        suppressContentEditableWarning
+        onBlur={onUpdate ? handleTitleBlur : undefined}
+        onClick={e => onUpdate && e.stopPropagation()}
+        style={{
+          fontSize: '12px', fontWeight: 500, lineHeight: 1.4,
+          color: isSelected ? '#1a1a1a' : '#444',
+          outline: 'none',
+        }}
+      >
         {story.title}
       </div>
+      {onUpdate && story.description && (
+        <div
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={handleDescBlur}
+          onClick={e => e.stopPropagation()}
+          style={{
+            marginTop: '4px', fontSize: '11px', color: '#888', lineHeight: 1.5,
+            outline: 'none',
+          }}
+        >
+          {story.description}
+        </div>
+      )}
     </div>
   );
 }
 
-export default function StoryMapFrame({ epic, stories, children }) {
+export default function StoryMapFrame({ epic, stories, children, onUpdateStory, loading }) {
   const [selectedStory, setSelectedStory] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
 
-  function handleSelect(id) {
-    setSelectedStory(prev => prev === id ? null : id);
+  function handleSelect(key) {
+    setSelectedStory(prev => prev === key ? null : key);
   }
+
+  const epicTicket = epic?.ticket_key ?? epic?.ticket;
+  const epicTitle = epic?.title ?? '…';
+  const epicDesc = epic?.description ?? '';
 
   return (
     <StoryMapContext.Provider value={{ selectedStory, setSelectedStory: handleSelect }}>
@@ -106,17 +149,15 @@ export default function StoryMapFrame({ epic, stories, children }) {
         {/* Epic header */}
         <div style={f.header}>
           <span style={f.epicChip}>EPIC</span>
-          <a
-            href={`${BASE_URL}/${epic.ticket}`}
-            target="_blank"
-            rel="noreferrer"
-            style={f.ticketLink}
-          >
-            {epic.ticket}
-          </a>
+          {epicTicket && (
+            <a href={`${BASE_URL}/${epicTicket}`} target="_blank" rel="noreferrer" style={f.ticketLink}>
+              {epicTicket}
+            </a>
+          )}
           <span style={{ color: '#ccc', fontSize: '12px' }}>·</span>
-          <span style={f.epicTitle}>{epic.title}</span>
-          <span style={f.epicDesc}>— {epic.description}</span>
+          <span style={f.epicTitle}>{epicTitle}</span>
+          {!loading && <span style={f.epicDesc}>— {epicDesc}</span>}
+          {loading && <span style={{ ...f.epicDesc, color: '#bbb', fontStyle: 'italic' }}>Loading…</span>}
           <button style={f.collapseBtn} onClick={() => setCollapsed(c => !c)}>
             {collapsed ? '▾' : '▴'}
           </button>
@@ -129,8 +170,9 @@ export default function StoryMapFrame({ epic, stories, children }) {
               <StoryCard
                 key={story.id}
                 story={story}
-                isSelected={selectedStory === story.id}
+                isSelected={selectedStory === storyKey(story)}
                 onSelect={handleSelect}
+                onUpdate={onUpdateStory}
               />
             ))}
           </div>
