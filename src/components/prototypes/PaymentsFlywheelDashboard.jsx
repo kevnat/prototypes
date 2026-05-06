@@ -628,8 +628,8 @@ export default function PaymentsFlywheelDashboard() {
             )}
             <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
             {isEditMode
-              ? <button onClick={exitEditMode} style={{ ...s.btn, ...s.btnActive }} title="Lock board">🔓 Lock</button>
-              : <button onClick={openPassphraseModal} style={s.btn} title="Unlock to edit">🔒</button>
+              ? <button onClick={exitEditMode} style={s.editingBadge} title="Click to lock">🔓 Editing</button>
+              : <button onClick={openPassphraseModal} style={s.lockedBadge} title="Click to unlock">🔒 Locked</button>
             }
           </div>
         </div>
@@ -768,6 +768,8 @@ const s = {
   restoreBtn:    { background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#9ca3af', padding: '0 2px', lineHeight: 1 },
 
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
+  lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
+  editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
   modal:         { background: 'white', borderRadius: 12, padding: 20, width: 300, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' },
   modalInput:    { width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 10, outline: 'none', boxSizing: 'border-box' },
