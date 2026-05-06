@@ -528,6 +528,9 @@ export default function PaymentsFlywheelDashboard() {
       const aPin = overrides[a.key] ? 0 : 1;
       const bPin = overrides[b.key] ? 0 : 1;
       if (aPin !== bPin) return aPin - bPin;
+      const aTD = (a.fields.labels || []).includes('pay-tech-debt') ? 1 : 0;
+      const bTD = (b.fields.labels || []).includes('pay-tech-debt') ? 1 : 0;
+      if (aTD !== bTD) return aTD - bTD;
       // indev: closest to test at top (highest review/test ratio first)
       if (col === 'indev') {
         const diff = reviewTestRatio(childMap[b.key]) - reviewTestRatio(childMap[a.key]);
