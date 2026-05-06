@@ -241,13 +241,13 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor }) {
+function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false }) {
   const { key, fields } = issue;
   const name   = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
   const isTechDebt = (fields.labels || []).includes('pay-tech-debt');
   return (
-    <div draggable data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
+    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: isDraggable ? 'grab' : 'default' }}>
       <div style={s.cardTop}>
         <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
         <span style={{ ...s.pDot, background: priorityColor(fields.priority?.name) }}
@@ -302,7 +302,7 @@ function DropLine() {
   return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
-function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle }) {
+function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false }) {
   const cs = COL_STYLES[colId];
   const [insertIdx, setInsertIdx] = useState(null);
 
@@ -315,7 +315,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
     <div style={s.column}
          onDragOver={e => { e.preventDefault(); if (issues.length === 0) setInsertIdx(0); }}
          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setInsertIdx(null); }}
-         onDrop={e => { e.preventDefault(); setInsertIdx(null); onDrop(colId); }}>
+         onDrop={e => { e.preventDefault(); setInsertIdx(null); if (editable) onDrop(colId); }}>
       <div style={{ ...s.colHeader, background: cs.bg, color: cs.color, border: `1px solid ${cs.border}` }}>
         {COL_TITLES[colId]}
         <span style={s.colCount}>{issues.length}</span>
@@ -332,10 +332,11 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     childData={colId !== 'upnext' ? (childMap[i.key] ?? null) : null}
                     showGroom={showGroom}
                     isPinned={!!overrides[i.key]}
-                    onHide={onHide}
+                    onHide={editable ? onHide : undefined}
                     groomChecks={groomState?.[i.key]}
                     onGroomToggle={onGroomToggle}
                     colColor={cs.color}
+                    isDraggable={editable}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
                   />
                 </div>
@@ -380,7 +381,7 @@ const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
 export default function PaymentsFlywheelDashboard() {
   const navigate = useNavigate();
-  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState } = useFlywheelBoard();
+  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
   const [allEpics,   setAllEpics]   = useState([]);
   const [childMap,   setChildMap]   = useState({});
   const [trayOpen,   setTrayOpen]   = useState(false);
@@ -388,6 +389,9 @@ export default function PaymentsFlywheelDashboard() {
   const [meta,       setMeta]       = useState('Loading…');
   const [error,      setError]      = useState(null);
   const [dragKey,    setDragKey]    = useState(null);
+  const [showPassphraseModal, setShowPassphraseModal] = useState(false);
+  const [passphraseInput,     setPassphraseInput]     = useState('');
+  const [unlockError,         setUnlockError]         = useState(null);
 
   // ── Jira load ──────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -495,9 +499,26 @@ export default function PaymentsFlywheelDashboard() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function handleDrop(colId) {
-    if (!dragKey) return;
+    if (!dragKey || !isEditMode) return;
     setOverrides({ ...overrides, [dragKey]: colId });
     setDragKey(null);
+  }
+
+  async function handleUnlock() {
+    setUnlockError(null);
+    const ok = await enterEditMode(passphraseInput);
+    if (ok) {
+      setShowPassphraseModal(false);
+      setPassphraseInput('');
+    } else {
+      setUnlockError('Incorrect passphrase');
+    }
+  }
+
+  function openPassphraseModal() {
+    setPassphraseInput('');
+    setUnlockError(null);
+    setShowPassphraseModal(true);
   }
 
   function hideCard(key) {
@@ -544,13 +565,19 @@ export default function PaymentsFlywheelDashboard() {
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
               {showTD ? 'Hide tech debt' : 'Show tech debt'}
             </button>
-            {hidden.length > 0 && (
+            {isEditMode && hidden.length > 0 && (
               <button onClick={() => setTrayOpen(o => !o)} style={s.btn}>
                 {trayOpen ? 'Hide' : 'Show'} hidden ({hidden.length})
               </button>
             )}
-            <button onClick={resetOverrides} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
+            {isEditMode && (
+              <button onClick={resetOverrides} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
+            )}
             <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
+            {isEditMode
+              ? <button onClick={exitEditMode} style={{ ...s.btn, ...s.btnActive }} title="Lock board">🔓 Lock</button>
+              : <button onClick={openPassphraseModal} style={s.btn} title="Unlock to edit">🔒</button>
+            }
           </div>
         </div>
 
@@ -569,11 +596,34 @@ export default function PaymentsFlywheelDashboard() {
           </div>
         )}
 
+        {/* Passphrase modal */}
+        {showPassphraseModal && (
+          <div style={s.modalOverlay} onClick={() => setShowPassphraseModal(false)}>
+            <div style={s.modal} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Enter passphrase to edit</div>
+              <input
+                type="password"
+                value={passphraseInput}
+                onChange={e => setPassphraseInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+                style={s.modalInput}
+                placeholder="Passphrase"
+                autoFocus
+              />
+              {unlockError && <div style={{ fontSize: 10, color: '#b91c1c', marginBottom: 8 }}>{unlockError}</div>}
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowPassphraseModal(false)} style={s.btn}>Cancel</button>
+                <button onClick={handleUnlock} style={{ ...s.btn, background: '#2563eb', color: 'white', borderColor: '#2563eb' }}>Unlock</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Kanban board */}
         {(!loading || allEpics.length > 0) && (
           <div style={s.board}
                onDragStart={e => {
-                 // capture the card key from closest card ancestor
+                 if (!isEditMode) return;
                  const card = e.target.closest('[data-key]');
                  if (card) setDragKey(card.dataset.key);
                }}>
@@ -589,6 +639,7 @@ export default function PaymentsFlywheelDashboard() {
                 onDrop={handleDrop}
                 groomState={groomState}
                 onGroomToggle={handleGroomToggle}
+                editable={isEditMode}
               />
             ))}
           </div>
@@ -649,4 +700,8 @@ const s = {
   hiddenTrayHead:{ padding: '8px 12px', fontSize: 10, fontWeight: 700, color: '#6b7280', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 8 },
   hiddenChip:    { display: 'flex', alignItems: 'center', gap: 5, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 5, padding: '3px 8px', fontSize: 10, color: '#374151' },
   restoreBtn:    { background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#9ca3af', padding: '0 2px', lineHeight: 1 },
+
+  modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
+  modal:         { background: 'white', borderRadius: 12, padding: 20, width: 300, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' },
+  modalInput:    { width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 10, outline: 'none', boxSizing: 'border-box' },
 };

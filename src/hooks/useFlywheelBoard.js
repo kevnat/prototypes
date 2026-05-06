@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
-const KEYS = ['pfr_overrides', 'pfr_hidden', 'pfr_techdebt', 'pfr_groom'];
+const KEYS = ['pfr_overrides', 'pfr_hidden', 'pfr_techdebt', 'pfr_groom', 'pfr_edit_hash'];
 
 function lsGet(key, fallback) {
   try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
@@ -10,6 +10,12 @@ function lsGet(key, fallback) {
 function lsSet(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
+function getEditSession() {
+  try {
+    const v = JSON.parse(localStorage.getItem('pfr_edit_session') || 'null');
+    return !!(v && v.expiry > Date.now());
+  } catch { return false; }
+}
 
 export function useFlywheelBoard() {
   const [overrides,   setOverridesState]  = useState(() => lsGet('pfr_overrides', {}));
@@ -17,6 +23,8 @@ export function useFlywheelBoard() {
   const [showTD,      setShowTDState]     = useState(() => lsGet('pfr_techdebt',  false));
   const [groomState,  setGroomStateRaw]   = useState(() => lsGet('pfr_groom',     {}));
   const [loaded,      setLoaded]          = useState(false);
+  const [storedHash,  setStoredHash]      = useState(null);
+  const [isEditMode,  setIsEditMode]      = useState(() => getEditSession());
 
   useEffect(() => {
     (async () => {
@@ -34,6 +42,7 @@ export function useFlywheelBoard() {
         if (byKey.pfr_hidden    !== undefined) { setHiddenState(byKey.pfr_hidden);        lsSet('pfr_hidden',    byKey.pfr_hidden); }
         if (byKey.pfr_techdebt  !== undefined) { setShowTDState(byKey.pfr_techdebt);      lsSet('pfr_techdebt',  byKey.pfr_techdebt); }
         if (byKey.pfr_groom     !== undefined) { setGroomStateRaw(byKey.pfr_groom);       lsSet('pfr_groom',     byKey.pfr_groom); }
+        if (byKey.pfr_edit_hash !== undefined) { setStoredHash(byKey.pfr_edit_hash); }
       } catch (err) {
         console.warn('useFlywheelBoard: Supabase load failed, using localStorage', err);
       } finally {
@@ -58,5 +67,25 @@ export function useFlywheelBoard() {
   const setShowTD     = useCallback(next => { setShowTDState(next);     persist('pfr_techdebt',  next); }, [persist]);
   const setGroomState = useCallback(next => { setGroomStateRaw(next);   persist('pfr_groom',     next); }, [persist]);
 
-  return { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, loaded };
+  const enterEditMode = useCallback(async (passphrase) => {
+    if (!storedHash) return false;
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(passphrase));
+    const hashHex = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    if (hashHex === storedHash) {
+      lsSet('pfr_edit_session', { expiry: Date.now() + 24 * 60 * 60 * 1000 });
+      setIsEditMode(true);
+      return true;
+    }
+    return false;
+  }, [storedHash]);
+
+  const exitEditMode = useCallback(() => {
+    localStorage.removeItem('pfr_edit_session');
+    setIsEditMode(false);
+  }, []);
+
+  return { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, loaded, isEditMode, enterEditMode, exitEditMode };
 }
