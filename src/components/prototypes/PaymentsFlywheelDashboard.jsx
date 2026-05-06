@@ -535,8 +535,10 @@ export default function PaymentsFlywheelDashboard() {
 
         {/* Header */}
         <div style={s.header}>
-          <button onClick={() => navigate('/home')} style={s.backBtn}>←</button>
-          <span style={s.h1}>D - Payments Epic Board</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => navigate('/home')} style={s.backBtn}>←</button>
+            <span style={s.h1}>Payments Epic Board</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={s.meta}>{meta}</span>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
@@ -612,7 +614,7 @@ const s = {
   meta:          { fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap' },
   errorBanner:   { background: '#fee2e2', borderBottom: '1px solid #fca5a5', padding: '8px 16px', fontSize: 11, color: '#b91c1c' },
 
-  backBtn:       { fontSize: 14, lineHeight: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280', marginRight: 4 },
+  backBtn:       { fontSize: 14, lineHeight: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280' },
   btn:           { fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' },
   btnActive:     { background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' },
   btnDanger:     { borderColor: '#fca5a5', color: '#b91c1c' },
