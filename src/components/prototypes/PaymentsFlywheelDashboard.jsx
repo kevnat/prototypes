@@ -244,7 +244,8 @@ function ProgressSummary({ children }) {
 function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor }) {
   const { key, fields } = issue;
   const name   = fields.assignee?.displayName;
-  const url    = `${JIRA_SITE}/browse/${key}`;
+  const url        = `${JIRA_SITE}/browse/${key}`;
+  const isTechDebt = (fields.labels || []).includes('pay-tech-debt');
   return (
     <div draggable data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
       <div style={s.cardTop}>
@@ -261,7 +262,11 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
         )}
       </div>
       <div style={s.cardTitle}>{fields.summary}</div>
-
+      {isTechDebt && (
+        <div style={{ marginTop: 5 }}>
+          <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>
+        </div>
+      )}
       <div style={s.cardFoot}>
         <span style={s.updated}>Updated {timeAgo(fields.updated)}</span>
       </div>
