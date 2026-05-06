@@ -527,7 +527,7 @@ export default function PaymentsFlywheelDashboard() {
 
         {/* Header */}
         <div style={s.header}>
-          <span style={s.h1}>🔄 D - Payments · Epic Kanban Microcosm</span>
+          <span style={s.h1}>D - Payments Epic Board</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={s.meta}>{meta}</span>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>

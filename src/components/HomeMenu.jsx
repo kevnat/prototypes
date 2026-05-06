@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 
 const sections = [
   {
-    title: 'Payments Flywheel',
+    title: 'Payments Epic Board',
     description: 'Live Jira kanban board tracking D - Payments epics across lifecycle lanes',
     thumbnail: '🔄',
     route: '/payments',
