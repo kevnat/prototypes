@@ -241,14 +241,14 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver }) {
+function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor }) {
   const { key, fields } = issue;
   const name   = fields.assignee?.displayName;
   const url    = `${JIRA_SITE}/browse/${key}`;
   return (
     <div draggable data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
       <div style={s.cardTop}>
-        <a href={url} target="_blank" rel="noreferrer" style={s.epicKey}>{key}</a>
+        <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
         <span style={{ ...s.pDot, background: priorityColor(fields.priority?.name) }}
               title={fields.priority?.name} />
         {name && (
@@ -330,6 +330,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     onHide={onHide}
                     groomChecks={groomState?.[i.key]}
                     onGroomToggle={onGroomToggle}
+                    colColor={cs.color}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
                   />
                 </div>
