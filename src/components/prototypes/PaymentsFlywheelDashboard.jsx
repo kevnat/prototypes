@@ -70,6 +70,11 @@ const CANCELLED = new Set([
   'cancel','cancelled','canceled',"won't do",'wont do',"won't fix",
   'wontfix','duplicate','invalid','rejected','withdrawn','obsolete',
 ]);
+const IN_REVIEW_TEST = new Set([
+  'in review','code review','review','peer review','pr review','pull request',
+  'in test','testing','qa','quality assurance','uat','in qa',
+  'ready for test','ready for qa','ready for review','ready for testing',
+]);
 
 // ── Display helpers ───────────────────────────────────────────────────────────
 const AVATAR_COLORS = {
@@ -114,7 +119,24 @@ function categorise(children) {
   const early           = children.filter(c => EARLY.has(c.status.toLowerCase())).length;
   if (doneOrCancelled / total >= 0.55) return 'almostdone';
   if (early           / total >= 0.65) return 'starting';
-  return 'building';
+  // Split building: more in review/test → intest, otherwise indev (tie stays indev)
+  const reviewTest  = children.filter(c => IN_REVIEW_TEST.has(c.status.toLowerCase())).length;
+  const activelyDev = children.filter(c =>
+    !DONE.has(c.status.toLowerCase()) &&
+    !EARLY.has(c.status.toLowerCase()) &&
+    !IN_REVIEW_TEST.has(c.status.toLowerCase()) &&
+    !CANCELLED.has(c.status.toLowerCase())
+  ).length;
+  return reviewTest > activelyDev ? 'intest' : 'indev';
+}
+
+// Progress score for indev sort: ratio of tickets in review/test (higher = closer to intest)
+function reviewTestRatio(children) {
+  if (!children || children.length === 0) return 0;
+  const scoped     = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
+  if (scoped.length === 0) return 0;
+  const reviewTest = scoped.filter(c => IN_REVIEW_TEST.has(c.status.toLowerCase())).length;
+  return reviewTest / scoped.length;
 }
 
 // ── Jira REST helpers ─────────────────────────────────────────────────────────
@@ -222,8 +244,6 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
   const { key, fields } = issue;
   const name   = fields.assignee?.displayName;
   const url    = `${JIRA_SITE}/browse/${key}`;
-  const visibleLabels = (fields.labels || []).filter(l => LABEL_STYLES[l]);
-
   return (
     <div draggable data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
       <div style={s.cardTop}>
@@ -240,15 +260,7 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
         )}
       </div>
       <div style={s.cardTitle}>{fields.summary}</div>
-      {visibleLabels.length > 0 && (
-        <div style={s.labels}>
-          {visibleLabels.map(l => (
-            <span key={l} style={{ ...s.pill, background: LABEL_STYLES[l].bg, color: LABEL_STYLES[l].color }}>
-              {LABEL_STYLES[l].text}
-            </span>
-          ))}
-        </div>
-      )}
+
       <div style={s.cardFoot}>
         <span style={s.updated}>Updated {timeAgo(fields.updated)}</span>
       </div>
@@ -268,12 +280,16 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
 const COL_STYLES = {
   upnext:    { bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' },
   starting:  { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-  building:  { bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  indev:     { bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  intest:    { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa' },
   almostdone:{ bg: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' },
 };
 const COL_TITLES = {
-  upnext: '⏭️ Up Next', starting: '🌱 Starting',
-  building: '🔨 Building', almostdone: '🏁 Almost Done',
+  upnext:    '⏭️ Up Next',
+  starting:  '🌱 Starting',
+  indev:     '🔨 In Development',
+  intest:    '🧪 In Test',
+  almostdone:'🏁 Almost Done',
 };
 
 function DropLine() {
@@ -353,7 +369,7 @@ function HiddenTray({ hidden, allEpics, onRestore, onClose }) {
 }
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
-const COLS = ['upnext', 'starting', 'building', 'almostdone'];
+const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
 export default function PaymentsFlywheelDashboard() {
   const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState } = useFlywheelBoard();
@@ -437,7 +453,7 @@ export default function PaymentsFlywheelDashboard() {
     if (children && children.length > 0) return categorise(children);
     const labels = epic.fields.labels || [];
     if (labels.includes('pay-dev-complete')) return 'almostdone';
-    if (labels.includes('pay-in-dev'))       return 'building';
+    if (labels.includes('pay-in-dev'))       return 'indev';
     return 'starting';
   }
 
@@ -447,19 +463,24 @@ export default function PaymentsFlywheelDashboard() {
     return true;
   });
 
-  const buckets = { upnext: [], starting: [], building: [], almostdone: [] };
+  const buckets = { upnext: [], starting: [], indev: [], intest: [], almostdone: [] };
   visible.filter(e => e.fields.status.name === 'Open').forEach(e => buckets.upnext.push(e));
   visible.filter(e => e.fields.status.name === 'In Progress').forEach(e => {
     const col = getCol(e);
-    (buckets[col] || (buckets['building'])).push(e);
+    (buckets[col] || buckets['indev']).push(e);
   });
 
-  // Sort: pinned first, then by priority
+  // Sort: pinned first, then column-specific order
   COLS.forEach(col => {
     buckets[col].sort((a, b) => {
       const aPin = overrides[a.key] ? 0 : 1;
       const bPin = overrides[b.key] ? 0 : 1;
       if (aPin !== bPin) return aPin - bPin;
+      // indev: closest to test at top (highest review/test ratio first)
+      if (col === 'indev') {
+        const diff = reviewTestRatio(childMap[b.key]) - reviewTestRatio(childMap[a.key]);
+        if (diff !== 0) return diff;
+      }
       return (PRIORITY_ORDER[a.fields.priority?.name] ?? 4) - (PRIORITY_ORDER[b.fields.priority?.name] ?? 4);
     });
   });
@@ -498,6 +519,7 @@ export default function PaymentsFlywheelDashboard() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         * { box-sizing: border-box; }
       `}</style>
@@ -575,7 +597,7 @@ function Spinner() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
-  root:          { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#f1f3f6', minHeight: '100vh', color: '#111827' },
+  root:          { fontFamily: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#f1f3f6', minHeight: '100vh', color: '#111827' },
   header:        { background: 'white', borderBottom: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 },
   h1:            { fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' },
   meta:          { fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap' },
@@ -585,7 +607,7 @@ const s = {
   btnActive:     { background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' },
   btnDanger:     { borderColor: '#fca5a5', color: '#b91c1c' },
 
-  board:         { display: 'grid', gridTemplateColumns: '220px 1fr 1fr 1fr', gap: 10, padding: 12, alignItems: 'start' },
+  board:         { display: 'grid', gridTemplateColumns: '220px 1fr 1fr 1fr 1fr', gap: 10, padding: 12, alignItems: 'start' },
   column:        { display: 'flex', flexDirection: 'column', gap: 6 },
   colHeader:     { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2, userSelect: 'none' },
   colCount:      { marginLeft: 'auto', fontSize: 9, background: 'rgba(0,0,0,0.08)', padding: '1px 6px', borderRadius: 8 },

@@ -7,9 +7,8 @@ const PrototypeLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Extract prototype ID from the path
-  const prototypeId = location.pathname.split('/').pop();
-  const prototype = prototypes.find(p => p.id === prototypeId);
+  const prototype = prototypes.find(p => p.route === location.pathname)
+    || prototypes.find(p => location.pathname.endsWith(`/${p.id}`));
   
   if (!prototype) {
     return (
