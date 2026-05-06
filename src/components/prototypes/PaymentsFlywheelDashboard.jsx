@@ -278,9 +278,12 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
         <button
           onClick={openNote}
           title={note ? 'View/edit note' : 'Add note'}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontSize: 11, color: note ? '#2563eb' : '#d1d5db' }}
+          style={note
+            ? { fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#dbeafe', color: '#1d4ed8', cursor: 'pointer', lineHeight: 1.6, whiteSpace: 'nowrap' }
+            : { background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontSize: 11, color: '#d1d5db' }
+          }
         >
-          ✎
+          {note ? '✎ note' : '✎'}
         </button>
       </div>
       {noteOpen && (
