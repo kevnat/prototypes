@@ -280,8 +280,8 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
 // ── Kanban column ─────────────────────────────────────────────────────────────
 const COL_STYLES = {
   upnext:    { bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' },
-  starting:  { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-  indev:     { bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  starting:  { bg: '#fefce8', color: '#854d0e', border: '#fde047' },
+  indev:     { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
   intest:    { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa' },
   almostdone:{ bg: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' },
 };
