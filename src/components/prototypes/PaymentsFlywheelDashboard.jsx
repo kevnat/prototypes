@@ -241,11 +241,17 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false }) {
+function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote }) {
   const { key, fields } = issue;
-  const name   = fields.assignee?.displayName;
+  const name       = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
   const isTechDebt = (fields.labels || []).includes('pay-tech-debt');
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [draft,    setDraft]    = useState(note);
+
+  function openNote() { setDraft(note); setNoteOpen(true); }
+  function saveNote() { if (onSaveNote) onSaveNote(key, draft); setNoteOpen(false); }
+
   return (
     <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: isDraggable ? 'grab' : 'default' }}>
       <div style={s.cardTop}>
@@ -267,9 +273,41 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
           <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>
         </div>
       )}
-      <div style={s.cardFoot}>
+      <div style={{ ...s.cardFoot, justifyContent: 'space-between' }}>
         <span style={s.updated}>Updated {timeAgo(fields.updated)}</span>
+        <button
+          onClick={openNote}
+          title={note ? 'View/edit note' : 'Add note'}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontSize: 11, color: note ? '#2563eb' : '#d1d5db' }}
+        >
+          ✎
+        </button>
       </div>
+      {noteOpen && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>
+          {onSaveNote ? (
+            <>
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                rows={3}
+                style={{ width: '100%', fontSize: 10, border: '1px solid #e5e7eb', borderRadius: 5, padding: '5px 7px', resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                placeholder="Add a note…"
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', marginTop: 4 }}>
+                <button onClick={() => setNoteOpen(false)} style={{ ...s.btn, fontSize: 9, padding: '3px 7px' }}>Cancel</button>
+                <button onClick={saveNote} style={{ ...s.btn, fontSize: 9, padding: '3px 7px', background: '#2563eb', color: 'white', borderColor: '#2563eb' }}>Save</button>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 10, color: '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              {note || <span style={{ color: '#9ca3af' }}>No note</span>}
+              <button onClick={() => setNoteOpen(false)} style={{ display: 'block', marginTop: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, color: '#9ca3af', padding: 0 }}>close</button>
+            </div>
+          )}
+        </div>
+      )}
       {childData !== null && <ProgressSummary children={childData} />}
       {showGroom && (
         <GroomingChecklist
@@ -302,7 +340,7 @@ function DropLine() {
   return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
-function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false }) {
+function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote }) {
   const cs = COL_STYLES[colId];
   const [insertIdx, setInsertIdx] = useState(null);
 
@@ -337,6 +375,8 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     onGroomToggle={onGroomToggle}
                     colColor={cs.color}
                     isDraggable={editable}
+                    note={notes[i.key] || ''}
+                    onSaveNote={editable ? onSaveNote : null}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
                   />
                 </div>
@@ -381,7 +421,7 @@ const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
 export default function PaymentsFlywheelDashboard() {
   const navigate = useNavigate();
-  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
+  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
   const [allEpics,   setAllEpics]   = useState([]);
   const [childMap,   setChildMap]   = useState({});
   const [trayOpen,   setTrayOpen]   = useState(false);
@@ -538,6 +578,13 @@ export default function PaymentsFlywheelDashboard() {
     setShowTD(!showTD);
   }
 
+  function handleSaveNote(epicKey, text) {
+    const next = { ...notes };
+    if (text.trim()) next[epicKey] = text.trim();
+    else delete next[epicKey];
+    setNotes(next);
+  }
+
   function handleGroomToggle(epicKey, idx) {
     const current = groomState[epicKey] || GROOM_LABELS.map(() => false);
     const next = current.map((v, i) => i === idx ? !v : v);
@@ -640,6 +687,8 @@ export default function PaymentsFlywheelDashboard() {
                 groomState={groomState}
                 onGroomToggle={handleGroomToggle}
                 editable={isEditMode}
+                notes={notes}
+                onSaveNote={handleSaveNote}
               />
             ))}
           </div>
