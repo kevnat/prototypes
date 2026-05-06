@@ -434,6 +434,7 @@ export default function PaymentsFlywheelDashboard() {
   const [showPassphraseModal, setShowPassphraseModal] = useState(false);
   const [passphraseInput,     setPassphraseInput]     = useState('');
   const [unlockError,         setUnlockError]         = useState(null);
+  const [lockAlert,           setLockAlert]           = useState(false);
 
   // ── Jira load ──────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -671,11 +672,22 @@ export default function PaymentsFlywheelDashboard() {
           </div>
         )}
 
+        {/* Lock alert toast */}
+        {lockAlert && (
+          <div style={s.lockToast}>
+            🔒 Board is locked — click the lock icon to edit
+          </div>
+        )}
+
         {/* Kanban board */}
         {(!loading || allEpics.length > 0) && (
           <div style={s.board}
                onDragStart={e => {
-                 if (!isEditMode) return;
+                 if (!isEditMode) {
+                   setLockAlert(true);
+                   setTimeout(() => setLockAlert(false), 2500);
+                   return;
+                 }
                  const card = e.target.closest('[data-key]');
                  if (card) setDragKey(card.dataset.key);
                }}>
@@ -755,6 +767,7 @@ const s = {
   hiddenChip:    { display: 'flex', alignItems: 'center', gap: 5, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 5, padding: '3px 8px', fontSize: 10, color: '#374151' },
   restoreBtn:    { background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#9ca3af', padding: '0 2px', lineHeight: 1 },
 
+  lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
   modal:         { background: 'white', borderRadius: 12, padding: 20, width: 300, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' },
   modalInput:    { width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 10, outline: 'none', boxSizing: 'border-box' },
