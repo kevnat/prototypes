@@ -218,14 +218,14 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle }) {
+function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver }) {
   const { key, fields } = issue;
   const name   = fields.assignee?.displayName;
   const url    = `${JIRA_SITE}/browse/${key}`;
   const visibleLabels = (fields.labels || []).filter(l => LABEL_STYLES[l]);
 
   return (
-    <div draggable data-key={key} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
+    <div draggable data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: 'grab' }}>
       <div style={s.cardTop}>
         <a href={url} target="_blank" rel="noreferrer" style={s.epicKey}>{key}</a>
         <span style={{ ...s.pDot, background: priorityColor(fields.priority?.name) }}
@@ -276,35 +276,49 @@ const COL_TITLES = {
   building: '🔨 Building', almostdone: '🏁 Almost Done',
 };
 
+function DropLine() {
+  return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
+}
+
 function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle }) {
   const cs = COL_STYLES[colId];
-  const [dragOver, setDragOver] = useState(false);
+  const [insertIdx, setInsertIdx] = useState(null);
+
+  function calcIdx(e, idx) {
+    const { top, height } = e.currentTarget.getBoundingClientRect();
+    return e.clientY < top + height / 2 ? idx : idx + 1;
+  }
 
   return (
     <div style={s.column}
-         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
-         onDrop={e => { e.preventDefault(); setDragOver(false); onDrop(colId); }}>
+         onDragOver={e => { e.preventDefault(); if (issues.length === 0) setInsertIdx(0); }}
+         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setInsertIdx(null); }}
+         onDrop={e => { e.preventDefault(); setInsertIdx(null); onDrop(colId); }}>
       <div style={{ ...s.colHeader, background: cs.bg, color: cs.color, border: `1px solid ${cs.border}` }}>
         {COL_TITLES[colId]}
         <span style={s.colCount}>{issues.length}</span>
       </div>
-      <div style={{ ...s.dropZone, ...(dragOver ? s.dropZoneActive : {}) }}>
+      <div style={{ ...s.dropZone, ...(insertIdx !== null ? s.dropZoneActive : {}) }}>
         {issues.length === 0
-          ? <div style={s.empty}>Drop cards here</div>
-          : issues.map(i => (
-              <EpicCard
-                key={i.key}
-                issue={i}
-                childData={colId !== 'upnext' ? (childMap[i.key] ?? null) : null}
-                showGroom={showGroom}
-                isPinned={!!overrides[i.key]}
-                onHide={onHide}
-                groomChecks={groomState?.[i.key]}
-                onGroomToggle={onGroomToggle}
-                draggable
-              />
-            ))
+          ? <>{insertIdx === 0 && <DropLine />}<div style={s.empty}>Drop cards here</div></>
+          : <>
+              {issues.map((i, idx) => (
+                <div key={i.key} style={{ display: 'contents' }}>
+                  {insertIdx === idx && <DropLine />}
+                  <EpicCard
+                    issue={i}
+                    childData={colId !== 'upnext' ? (childMap[i.key] ?? null) : null}
+                    showGroom={showGroom}
+                    isPinned={!!overrides[i.key]}
+                    onHide={onHide}
+                    groomChecks={groomState?.[i.key]}
+                    onGroomToggle={onGroomToggle}
+                    onDragOver={e => { e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
+                  />
+                </div>
+              ))}
+              {insertIdx === issues.length && <DropLine />}
+            </>
         }
       </div>
     </div>
