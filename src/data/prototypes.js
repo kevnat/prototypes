@@ -151,24 +151,6 @@ let prototypeData = [
       insights: 'Compact aging + payment detail view with expandable allocation rows'
     },
     {
-      id: 'payments-flywheel',
-      title: 'Payments Flywheel',
-      description: 'Live Jira kanban board tracking D - Payments epics across four lifecycle lanes: Up Next, Starting, Building, and Almost Done',
-      category: 'Payments',
-      status: 'iteration',
-      priority: 'high',
-      lastUpdated: '2026-05-05',
-      author: 'Product Team',
-      comments: 0,
-      tags: ['payments', 'jira', 'epics', 'kanban', 'flywheel'],
-      thumbnail: '🔄',
-      progress: 50,
-      route: '/payments',
-      featured: true,
-      screenshot: '/images/allocation_dashboard.png',
-      insights: 'Live Jira data — four-lane epic tracker for the Payments portfolio'
-    },
-    {
       id: 'api-docs',
       title: 'Payment Links API Documentation',
       description: 'Interactive API documentation for the Pay By Link Public API with Swagger UI',

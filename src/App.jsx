@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomeMenu from './components/HomeMenu';
 import PrototypeMenu from './components/prototypes/PrototypeMenu';
 import PrototypeLayout from './components/prototypes/PrototypeLayout';
 import PaymentLinksPrototype from './components/prototypes/PaymentLinksPrototype';
@@ -17,8 +18,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Main prototype dashboard */}
-        <Route path="/" element={<PrototypeMenu />} />
+        {/* Home */}
+        <Route path="/" element={<HomeMenu />} />
+        <Route path="/home" element={<HomeMenu />} />
+
+        {/* Prototype dashboard */}
         <Route path="/prototypes" element={<PrototypeMenu />} />
         
         {/* Individual prototypes wrapped in layout */}
