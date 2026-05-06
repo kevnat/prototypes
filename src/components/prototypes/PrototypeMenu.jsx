@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, MoreVertical } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MoreVertical } from 'lucide-react';
 import { prototypes, PROTOTYPE_STATUSES, updatePrototypeStatus } from '../../data/prototypes';
 
 const PrototypeMenu = () => {
@@ -28,7 +28,12 @@ const PrototypeMenu = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-8">Prototypes</h1>
+        <div className="flex items-center gap-3 mb-8">
+          <button onClick={() => navigate('/home')} className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <h1 className="text-2xl font-semibold text-slate-900">Prototypes</h1>
+        </div>
 
         <div className="border border-slate-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
