@@ -394,7 +394,7 @@ function HiddenTray({ hidden, allEpics, onRestore, onClose }) {
   return (
     <div style={s.hiddenTray}>
       <div style={s.hiddenTrayHead}>
-        🙈 Hidden cards — click ↩ to restore
+        🙈 Hidden cards{onRestore ? ' — click ↩ to restore' : ''}
         <button onClick={onClose} style={{ ...s.btn, marginLeft: 'auto', fontSize: 9 }}>Close</button>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 12px' }}>
@@ -406,7 +406,9 @@ function HiddenTray({ hidden, allEpics, onRestore, onClose }) {
               return (
                 <span key={key} style={s.hiddenChip}>
                   {label}
-                  <button onClick={() => onRestore(key)} style={s.restoreBtn} title="Restore">↩</button>
+                  {onRestore && (
+                    <button onClick={() => onRestore(key)} style={s.restoreBtn} title="Restore">↩</button>
+                  )}
                 </span>
               );
             })
@@ -615,7 +617,7 @@ export default function PaymentsFlywheelDashboard() {
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
               {showTD ? 'Hide tech debt' : 'Show tech debt'}
             </button>
-            {isEditMode && hidden.length > 0 && (
+            {hidden.length > 0 && (
               <button onClick={() => setTrayOpen(o => !o)} style={s.btn}>
                 {trayOpen ? 'Hide' : 'Show'} hidden ({hidden.length})
               </button>
@@ -636,7 +638,7 @@ export default function PaymentsFlywheelDashboard() {
         {/* Hidden tray */}
         {trayOpen && (
           <HiddenTray hidden={hidden} allEpics={allEpics}
-            onRestore={restoreCard} onClose={() => setTrayOpen(false)} />
+            onRestore={isEditMode ? restoreCard : null} onClose={() => setTrayOpen(false)} />
         )}
 
         {/* Loading overlay */}
