@@ -119,7 +119,50 @@ export const db = {
       const mysql = await initMySQLConnection();
       await mysql.query('DELETE FROM comments WHERE id = ?', [commentId]);
     }
-  }
+  },
+
+  // Story tickets — Supabase only
+  // Table: story_tickets (id, prototype_id, type, ticket_key, title, description, sort_order, created_at, updated_at)
+  // Unique constraint: (prototype_id, ticket_key)
+
+  async getStoryTickets(prototypeId) {
+    const { data, error } = await supabase
+      .from('story_tickets')
+      .select('*')
+      .eq('prototype_id', prototypeId)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async upsertStoryTickets(prototypeId, tickets) {
+    const rows = tickets.map(t => ({ ...t, prototype_id: prototypeId }));
+    const { error } = await supabase
+      .from('story_tickets')
+      .upsert(rows, { onConflict: 'prototype_id,ticket_key' });
+    if (error) throw error;
+    // Re-fetch so the returned array is ordered correctly
+    return this.getStoryTickets(prototypeId);
+  },
+
+  async updateStoryTicket(id, updates) {
+    const { data, error } = await supabase
+      .from('story_tickets')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteStoryTicket(id) {
+    const { error } = await supabase
+      .from('story_tickets')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
 };
 
 // Helper to create MySQL tables if they don't exist

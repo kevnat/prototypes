@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import StoryMapFrame from '../shared/StoryMapFrame';
 import { useStoryMap } from '../shared/StoryMapContext';
+import { useStoryTickets } from '../../hooks/useStoryTickets';
 
 const paData = [
   { date: '24/12/2025', id: '00304800', recv: 100.03, applied: 100.03, account: 'TMC Trailers CHC', allocs: [
@@ -32,50 +33,59 @@ const invData = [
   { date: '16/12/2025', id: '45398204', bp: '202511', amount: 56.12, allocated: 56.12, lockbox: '00304112' },
 ];
 
-const stories = [
+// Seed data — written to Supabase on first load if the table is empty.
+// ticket_key / sort_order / type are the Supabase schema fields.
+const SEED_TICKETS = [
   {
-    id: 1,
-    ticket: 'PAY-9561',
+    type: 'epic',
+    ticket_key: 'PAY-9560',
+    title: 'Payments and Aging — Table Consolidation',
+    description: 'Consolidate the Payments and Payment Allocations tables into a single expandable view, surfacing allocation status, cross-account splits, and unallocated remainders inline.',
+    sort_order: 0,
+  },
+  {
+    type: 'story',
+    ticket_key: 'PAY-9561',
     title: 'View payment allocations inline',
     description: 'Allocation records are grouped as expandable child rows under their parent payment, eliminating the need to cross-reference a separate table.',
+    sort_order: 1,
   },
   {
-    id: 2,
-    ticket: 'PAY-9562',
+    type: 'story',
+    ticket_key: 'PAY-9562',
     title: 'Identify allocation status at a glance',
     description: 'An inline status badge on each payment row shows whether it is fully allocated, partially allocated, unallocated, or a credit — without requiring the second table.',
+    sort_order: 2,
   },
   {
-    id: 3,
-    ticket: 'PAY-9563',
+    type: 'story',
+    ticket_key: 'PAY-9563',
     title: 'Identify payments allocated across multiple accounts',
     description: 'Child rows allocated to a different account than the parent are visually distinguished. Same-account rows suppress the account name to reduce noise.',
+    sort_order: 3,
   },
   {
-    id: 4,
-    ticket: 'PAY-9565',
+    type: 'story',
+    ticket_key: 'PAY-9565',
     title: 'Distinguish record types within a shared ID column',
     description: 'Lockbox records, payment allocations, and credits share a single ID column. A type pill (LBX, PMT, CRD) prefixes each ID so the record type is unambiguous without requiring separate columns or tables.',
+    sort_order: 4,
   },
   {
-    id: 5,
-    ticket: 'PAY-9566',
+    type: 'story',
+    ticket_key: 'PAY-9566',
     title: 'Total amount reflects the lockbox record received amount',
     description: 'The Total amount column on each parent row represents the gross amount received on the lockbox record — not a sum of its allocations. Child rows do not repeat this value.',
+    sort_order: 5,
   },
   {
-    id: 6,
-    ticket: 'PAY-9564',
+    type: 'story',
+    ticket_key: 'PAY-9564',
     title: 'See the unallocated remainder inline',
     description: 'When a payment is partially applied, the outstanding amount surfaces as an explicit child row when expanded, showing the amount with no invoice assigned.',
+    sort_order: 6,
   },
 ];
-
-const epic = {
-  ticket: 'PAY-9560',
-  title: 'Payments and Aging — Table Consolidation',
-  description: 'Consolidate the Payments and Payment Allocations tables into a single expandable view, surfacing allocation status, cross-account splits, and unallocated remainders inline.',
-};
 
 const agingBuckets = [
   { label: 'Current', amount: '($10.77)', count: 'Credit balance', style: 'normal', amtColor: '#A32D2D' },
@@ -153,10 +163,11 @@ function AgingBucket({ label, amount, count, variant, amtColor }) {
   );
 }
 
-function StoryBadge({ number, align = 'left' }) {
+function StoryBadge({ number, align = 'left', stories }) {
   const { selectedStory, setSelectedStory } = useStoryMap();
   const isOpen = selectedStory === number;
-  const story = stories.find(s => s.id === number);
+  const story = stories.find(s => (s.sort_order ?? s.id) === number);
+  const ticketKey = story?.ticket_key ?? story?.ticket;
   return (
     <span style={{ position: 'relative', display: 'inline-block', marginLeft: '5px', verticalAlign: 'middle' }}>
       <span
@@ -175,7 +186,7 @@ function StoryBadge({ number, align = 'left' }) {
       >
         {number}
       </span>
-      {isOpen && (
+      {isOpen && story && (
         <div style={{
           position: 'absolute', top: '20px', ...(align === 'right' ? { right: '0' } : { left: '0' }), zIndex: 200,
           background: '#fff', border: '0.5px solid #d4d4d4',
@@ -186,13 +197,13 @@ function StoryBadge({ number, align = 'left' }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: '#1a56b0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Story {number}</span>
             <a
-              href={`https://billingplatform.atlassian.net/browse/${story.ticket}`}
+              href={`https://billingplatform.atlassian.net/browse/${ticketKey}`}
               target="_blank"
               rel="noreferrer"
               onClick={e => e.stopPropagation()}
               style={{ fontSize: '10px', color: '#1a56b0', textDecoration: 'none', fontWeight: 600, fontFamily: 'monospace' }}
             >
-              {story.ticket} ↗
+              {ticketKey} ↗
             </a>
           </div>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a', marginBottom: '5px', lineHeight: 1.4 }}>
@@ -293,6 +304,7 @@ function PARow({ row, isOpen, onToggle }) {
 export default function PaymentsAgingPrototype() {
   const [openRows, setOpenRows] = useState(new Set());
   const [page, setPage] = useState(1);
+  const { epic, stories, loading, updateStoryTicket } = useStoryTickets('payments-aging', SEED_TICKETS);
 
   function toggleRow(id) {
     setOpenRows(prev => {
@@ -303,7 +315,7 @@ export default function PaymentsAgingPrototype() {
   }
 
   return (
-    <StoryMapFrame epic={epic} stories={stories}>
+    <StoryMapFrame epic={epic} stories={stories} loading={loading} onUpdateStory={updateStoryTicket}>
     <div style={s.page}>
       {/* Payments and aging section */}
       <div style={s.section}>
@@ -319,15 +331,15 @@ export default function PaymentsAgingPrototype() {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...s.th, overflow: 'visible' }}><StoryBadge number={1} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}><StoryBadge number={1} stories={stories} /></th>
                     <th style={s.th}>Date</th>
                     <th style={s.th}>Period</th>
-                    <th style={{ ...s.th, overflow: 'visible' }}>Status<StoryBadge number={2} /></th>
-                    <th style={{ ...s.th, overflow: 'visible' }}>Account<StoryBadge number={3} /></th>
-                    <th style={{ ...s.th, overflow: 'visible' }}>ID<StoryBadge number={4} /></th>
-                    <th style={{ ...s.thR, overflow: 'visible' }}>Total amount<StoryBadge number={5} align="right" /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>Status<StoryBadge number={2} stories={stories} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>Account<StoryBadge number={3} stories={stories} /></th>
+                    <th style={{ ...s.th, overflow: 'visible' }}>ID<StoryBadge number={4} stories={stories} /></th>
+                    <th style={{ ...s.thR, overflow: 'visible' }}>Total amount<StoryBadge number={5} align="right" stories={stories} /></th>
                     <th style={s.thR}>Allocated</th>
-                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={6} align="right" /></th>
+                    <th style={{ ...s.thR, overflow: 'visible' }}>Unallocated<StoryBadge number={6} align="right" stories={stories} /></th>
                   </tr>
                 </thead>
                 <tbody>

@@ -4,17 +4,23 @@ const forceDatabase = import.meta.env.VITE_DATABASE_PROVIDER; // 'supabase' or '
 
 export const DATABASE_PROVIDER = forceDatabase || (isDevelopment ? 'mysql' : 'supabase');
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️ Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY — set these in .env or Netlify environment variables.');
+}
+
 export const config = {
   database: {
     provider: DATABASE_PROVIDER,
 
-    // Supabase configuration
     supabase: {
-      url: import.meta.env.VITE_SUPABASE_URL || 'https://rjqgywzmkepnxkzkypid.supabase.co',
-      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_kNSIMV1nVs35pn3UJgVDsg_zCwHZhWh'
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
     },
 
-    // MySQL configuration (local development)
+    // MySQL configuration (local development — backend not implemented)
     mysql: {
       host: import.meta.env.VITE_MYSQL_HOST || 'localhost',
       port: import.meta.env.VITE_MYSQL_PORT || 3306,
