@@ -163,7 +163,7 @@ let prototypeData = [
       tags: ['payments', 'jira', 'epics', 'kanban', 'flywheel'],
       thumbnail: '🔄',
       progress: 50,
-      route: '/prototypes/payments-flywheel',
+      route: '/payments',
       featured: true,
       screenshot: '/images/allocation_dashboard.png',
       insights: 'Live Jira data — four-lane epic tracker for the Payments portfolio'

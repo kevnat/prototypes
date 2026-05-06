@@ -43,7 +43,7 @@ function App() {
         <Route path="/prototypes/payments-aging" element={<PrototypeLayout />}>
           <Route index element={<PaymentsAgingPrototype />} />
         </Route>
-        <Route path="/prototypes/payments-flywheel" element={<PrototypeLayout />}>
+        <Route path="/payments" element={<PrototypeLayout />}>
           <Route index element={<PaymentsFlywheelDashboard />} />
         </Route>
         <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
