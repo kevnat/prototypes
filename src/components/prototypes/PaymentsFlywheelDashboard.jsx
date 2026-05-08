@@ -47,6 +47,7 @@ const JIRA_SITE      = 'https://billingplatform.atlassian.net';
 const PROJECT        = 'D - Payments';
 const EPIC_FIELDS    = 'summary,status,priority,assignee,updated,labels';
 const CHILD_FIELDS   = 'status,customfield_10014,parent';  // customfield_10014 = classic Epic Link
+const TRIAGE_FIELDS  = 'summary,status,priority,assignee,updated,issuetype,parent,customfield_10014';
 
 const GROOM_LABELS = [
   'Design / mockups ready',
@@ -241,13 +242,15 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote }) {
+function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false }) {
   const { key, fields } = issue;
   const name       = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
   const isTechDebt = (fields.labels || []).includes('pay-tech-debt');
   const [noteOpen, setNoteOpen] = useState(false);
   const [draft,    setDraft]    = useState(note);
+
+  const noteVisible = noteOpen || (showAllNotes && !!note);
 
   function openNote() { setDraft(note); setNoteOpen(true); }
   function saveNote() { if (onSaveNote) onSaveNote(key, draft); setNoteOpen(false); }
@@ -286,9 +289,9 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
           {note ? '✎ note' : '✎'}
         </button>
       </div>
-      {noteOpen && (
+      {noteVisible && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>
-          {onSaveNote ? (
+          {noteOpen && onSaveNote ? (
             <>
               <textarea
                 value={draft}
@@ -343,7 +346,7 @@ function DropLine() {
   return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
-function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote }) {
+function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false }) {
   const cs = COL_STYLES[colId];
   const [insertIdx, setInsertIdx] = useState(null);
 
@@ -380,6 +383,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     isDraggable={editable}
                     note={notes[i.key] || ''}
                     onSaveNote={editable ? onSaveNote : null}
+                    showAllNotes={showAllNotes}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
                   />
                 </div>
@@ -421,15 +425,114 @@ function HiddenTray({ hidden, allEpics, onRestore, onClose }) {
   );
 }
 
+// ── Triage section ────────────────────────────────────────────────────────────
+const STATUS_COLORS = {
+  'to do':       { bg: '#f3f4f6', color: '#374151' },
+  'open':        { bg: '#f3f4f6', color: '#374151' },
+  'in progress': { bg: '#dbeafe', color: '#1d4ed8' },
+  'in review':   { bg: '#ede9fe', color: '#6d28d9' },
+  'in test':     { bg: '#fff7ed', color: '#c2410c' },
+  'done':        { bg: '#dcfce7', color: '#15803d' },
+  'closed':      { bg: '#dcfce7', color: '#15803d' },
+};
+
+function statusStyle(name) {
+  return STATUS_COLORS[name?.toLowerCase()] || { bg: '#f3f4f6', color: '#374151' };
+}
+
+function TriageSection({ issues }) {
+  const [open, setOpen] = useState(true);
+  if (issues.length === 0) return null;
+
+  return (
+    <div style={{ margin: '12px 12px 24px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: open ? '1px solid #f3f4f6' : 'none' }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#111827', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+          🔍 Triage
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 600, background: '#fef9c3', color: '#854d0e', border: '1px solid #fde68a', padding: '1px 7px', borderRadius: 8 }}>
+          {issues.length}
+        </span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#9ca3af' }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+          <thead>
+            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+              <th style={s.th}>Key</th>
+              <th style={s.th}>Summary</th>
+              <th style={s.th}>Type</th>
+              <th style={s.th}>Status</th>
+              <th style={s.th}>Assignee</th>
+              <th style={s.th}>Priority</th>
+              <th style={s.th}>Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {issues.map((issue, i) => {
+              const { key, fields } = issue;
+              const ss = statusStyle(fields.status?.name);
+              const name = fields.assignee?.displayName;
+              return (
+                <tr key={key} style={{ borderBottom: i < issues.length - 1 ? '1px solid #f9fafb' : 'none' }}>
+                  <td style={s.td}>
+                    <a href={`${JIRA_SITE}/browse/${key}`} target="_blank" rel="noreferrer"
+                       style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                      {key}
+                    </a>
+                  </td>
+                  <td style={{ ...s.td, maxWidth: 380 }}>
+                    <span style={{ color: '#111827', fontWeight: 500 }}>{fields.summary}</span>
+                  </td>
+                  <td style={s.td}>
+                    <span style={{ fontSize: 10, color: '#6b7280' }}>{fields.issuetype?.name || '—'}</span>
+                  </td>
+                  <td style={s.td}>
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 8, background: ss.bg, color: ss.color, whiteSpace: 'nowrap' }}>
+                      {fields.status?.name}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    {name
+                      ? <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: '50%', background: avatarColor(name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6, fontWeight: 800, color: 'white', flexShrink: 0 }}>
+                            {initials(name)}
+                          </span>
+                          <span style={{ fontSize: 10, color: '#374151', whiteSpace: 'nowrap' }}>{name.split(' ')[0]}</span>
+                        </span>
+                      : <span style={{ color: '#d1d5db', fontSize: 10 }}>—</span>
+                    }
+                  </td>
+                  <td style={s.td}>
+                    <span style={{ ...s.pDot, background: priorityColor(fields.priority?.name), display: 'inline-block' }} title={fields.priority?.name} />
+                  </td>
+                  <td style={{ ...s.td, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                    {timeAgo(fields.updated)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 // ── Main dashboard ────────────────────────────────────────────────────────────
 const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
 export default function PaymentsFlywheelDashboard() {
   const navigate = useNavigate();
   const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
-  const [allEpics,   setAllEpics]   = useState([]);
-  const [childMap,   setChildMap]   = useState({});
-  const [trayOpen,   setTrayOpen]   = useState(false);
+  const [allEpics,      setAllEpics]      = useState([]);
+  const [childMap,      setChildMap]      = useState({});
+  const [triageIssues,  setTriageIssues]  = useState([]);
+  const [trayOpen,      setTrayOpen]      = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [meta,       setMeta]       = useState('Loading…');
   const [error,      setError]      = useState(null);
@@ -438,6 +541,7 @@ export default function PaymentsFlywheelDashboard() {
   const [passphraseInput,     setPassphraseInput]     = useState('');
   const [unlockError,         setUnlockError]         = useState(null);
   const [lockAlert,           setLockAlert]           = useState(false);
+  const [showAllNotes,        setShowAllNotes]        = useState(false);
 
   // ── Jira load ──────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -490,6 +594,16 @@ export default function PaymentsFlywheelDashboard() {
       } else {
         setChildMap({});
       }
+
+      // ── Triage tickets ────────────────────────────────────────────────────
+      try {
+        const triageRes = await jiraSearch({
+          jql: `project = "${PROJECT}" AND labels = "triage" ORDER BY updated DESC`,
+          fields: TRIAGE_FIELDS,
+          maxResults: 50,
+        });
+        setTriageIssues(triageRes.issues || []);
+      } catch (_) {}
 
       const infCount = flightKeys.length;
       const upCount  = epics.filter(e => e.fields.status.name === 'Open').length;
@@ -630,6 +744,9 @@ export default function PaymentsFlywheelDashboard() {
               <button onClick={resetOverrides} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
             )}
             <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
+            <button onClick={() => setShowAllNotes(o => !o)} style={{ ...s.btn, ...(showAllNotes ? s.btnActive : {}) }}>
+              {showAllNotes ? 'Hide notes' : 'Show notes'}
+            </button>
             {isEditMode
               ? <button onClick={exitEditMode} style={s.editingBadge} title="Click to lock">🔓 Editing</button>
               : <button onClick={openPassphraseModal} style={s.lockedBadge} title="Click to unlock">🔒 Locked</button>
@@ -709,10 +826,13 @@ export default function PaymentsFlywheelDashboard() {
                 editable={isEditMode}
                 notes={notes}
                 onSaveNote={handleSaveNote}
+                showAllNotes={showAllNotes}
               />
             ))}
           </div>
         )}
+
+        <TriageSection issues={triageIssues} />
       </div>
     </>
   );
@@ -773,6 +893,8 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
+  th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
+  td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
   modal:         { background: 'white', borderRadius: 12, padding: 20, width: 300, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' },
   modalInput:    { width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 10, outline: 'none', boxSizing: 'border-box' },
