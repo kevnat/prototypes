@@ -361,7 +361,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
     <div style={s.column}
          onDragOver={e => { e.preventDefault(); if (issues.length === 0) setInsertIdx(0); }}
          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setInsertIdx(null); }}
-         onDrop={e => { e.preventDefault(); setInsertIdx(null); if (editable) onDrop(colId); }}>
+         onDrop={e => { e.preventDefault(); const idx = insertIdx; setInsertIdx(null); if (editable) onDrop(colId, idx); }}>
       <div style={{ ...s.colHeader, background: cs.bg, color: cs.color, border: `1px solid ${cs.border}` }}>
         {COL_TITLES[colId]}
         <span style={s.colCount}>{issues.length}</span>
@@ -530,7 +530,7 @@ const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
 export default function PaymentsFlywheelDashboard() {
   const navigate = useNavigate();
-  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
+  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, ranks, setRanks, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
   const [allEpics,      setAllEpics]      = useState([]);
   const [childMap,      setChildMap]      = useState({});
   const [triageIssues,  setTriageIssues]  = useState([]);
@@ -646,14 +646,20 @@ export default function PaymentsFlywheelDashboard() {
 
   // Sort: pinned first, then column-specific order
   COLS.forEach(col => {
+    const colOrder = ranks[col] || [];
     buckets[col].sort((a, b) => {
+      const aRank = colOrder.indexOf(a.key);
+      const bRank = colOrder.indexOf(b.key);
+      if (aRank !== -1 && bRank !== -1) return aRank - bRank;
+      if (aRank !== -1) return -1;
+      if (bRank !== -1) return 1;
+      // fallback: pinned first, tech debt last, then priority/ratio
       const aPin = overrides[a.key] ? 0 : 1;
       const bPin = overrides[b.key] ? 0 : 1;
       if (aPin !== bPin) return aPin - bPin;
       const aTD = (a.fields.labels || []).includes('pay-tech-debt') ? 1 : 0;
       const bTD = (b.fields.labels || []).includes('pay-tech-debt') ? 1 : 0;
       if (aTD !== bTD) return aTD - bTD;
-      // indev: closest to test at top (highest review/test ratio first)
       if (col === 'indev') {
         const diff = reviewTestRatio(childMap[b.key]) - reviewTestRatio(childMap[a.key]);
         if (diff !== 0) return diff;
@@ -663,9 +669,16 @@ export default function PaymentsFlywheelDashboard() {
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  function handleDrop(colId) {
+  function handleDrop(colId, insertIdx) {
     if (!dragKey || !isEditMode) return;
-    setOverrides({ ...overrides, [dragKey]: colId });
+    const currentKeys = buckets[colId].map(e => e.key);
+    const isSameCol   = currentKeys.includes(dragKey);
+    const newOverrides = isSameCol ? overrides : { ...overrides, [dragKey]: colId };
+    const base  = currentKeys.filter(k => k !== dragKey);
+    const idx   = insertIdx ?? base.length;
+    const newOrder = [...base.slice(0, idx), dragKey, ...base.slice(idx)];
+    setOverrides(newOverrides);
+    setRanks({ ...ranks, [colId]: newOrder });
     setDragKey(null);
   }
 
@@ -697,6 +710,7 @@ export default function PaymentsFlywheelDashboard() {
   function resetOverrides() {
     if (!window.confirm('Clear all manual column placements?')) return;
     setOverrides({});
+    setRanks({});
   }
 
   function toggleTD() {
