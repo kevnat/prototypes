@@ -261,8 +261,6 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
     <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: isDraggable ? 'grab' : 'default' }}>
       <div style={s.cardTop}>
         <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
-        <span style={{ ...s.pDot, background: priorityColor(fields.priority?.name) }}
-              title={fields.priority?.name} />
         {name && (
           <span style={{ ...s.avatar, background: avatarColor(name) }} title={name}>
             {initials(name)}
