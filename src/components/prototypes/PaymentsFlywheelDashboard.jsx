@@ -834,7 +834,7 @@ export default function PaymentsFlywheelDashboard() {
           </div>
         )}
 
-        <TriageSection issues={triageIssues} />
+        {/* <TriageSection issues={triageIssues} /> */}
       </div>
     </>
   );
