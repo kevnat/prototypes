@@ -250,6 +250,8 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
   const [noteOpen, setNoteOpen] = useState(false);
   const [draft,    setDraft]    = useState(note);
 
+  useEffect(() => { if (!showAllNotes) setNoteOpen(false); }, [showAllNotes]);
+
   const noteVisible = noteOpen || (showAllNotes && !!note);
 
   function openNote() { setDraft(note); setNoteOpen(true); }
