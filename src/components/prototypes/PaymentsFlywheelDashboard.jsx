@@ -45,7 +45,7 @@ import { useFlywheelBoard } from '../../hooks/useFlywheelBoard.js';
 const JIRA_BASE_URL  = '/api/jira';
 const JIRA_SITE      = 'https://billingplatform.atlassian.net';
 const PROJECT        = 'D - Payments';
-const EPIC_FIELDS    = 'summary,status,priority,assignee,updated,labels';
+const EPIC_FIELDS    = 'summary,status,priority,assignee,updated,labels,issuelinks';
 const CHILD_FIELDS   = 'status,customfield_10014,parent';  // customfield_10014 = classic Epic Link
 const TRIAGE_FIELDS  = 'summary,status,priority,assignee,updated,issuetype,parent,customfield_10014';
 
@@ -242,7 +242,7 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false }) {
+function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
   const { key, fields } = issue;
   const name       = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
@@ -273,9 +273,15 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
         )}
       </div>
       <div style={s.cardTitle}>{fields.summary}</div>
-      {isTechDebt && (
-        <div style={{ marginTop: 5 }}>
-          <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>
+      {(isTechDebt || rdmpLink) && (
+        <div style={{ marginTop: 5, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {isTechDebt && <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>}
+          {rdmpLink && (
+            <a href={`${JIRA_SITE}/browse/${rdmpLink}`} target="_blank" rel="noreferrer"
+               style={{ ...s.pill, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none' }}>
+              ↗ {rdmpLink}
+            </a>
+          )}
         </div>
       )}
       <div style={{ ...s.cardFoot, justifyContent: 'space-between' }}>
@@ -348,7 +354,7 @@ function DropLine() {
   return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
-function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false }) {
+function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false, rdmpMap = {} }) {
   const cs = COL_STYLES[colId];
   const [insertIdx, setInsertIdx] = useState(null);
 
@@ -386,6 +392,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     note={notes[i.key] || ''}
                     onSaveNote={editable ? onSaveNote : null}
                     showAllNotes={showAllNotes}
+                    rdmpLink={rdmpMap[i.key] || null}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); setInsertIdx(calcIdx(e, idx)); }}
                   />
                 </div>
@@ -533,6 +540,7 @@ export default function PaymentsFlywheelDashboard() {
   const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, ranks, setRanks, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
   const [allEpics,      setAllEpics]      = useState([]);
   const [childMap,      setChildMap]      = useState({});
+  const [rdmpMap,       setRdmpMap]       = useState({});
   const [triageIssues,  setTriageIssues]  = useState([]);
   const [trayOpen,      setTrayOpen]      = useState(false);
   const [loading,    setLoading]    = useState(true);
@@ -558,6 +566,16 @@ export default function PaymentsFlywheelDashboard() {
       const epics    = epicRes.issues || [];
       const flightKeys = epics.filter(e => e.fields.status.name === 'In Progress').map(e => e.key);
       setAllEpics(epics);
+
+      const newRdmpMap = {};
+      epics.forEach(e => {
+        const links = e.fields.issuelinks || [];
+        const rdmpKeys = links
+          .flatMap(l => [l.outwardIssue?.key, l.inwardIssue?.key])
+          .filter(k => k?.startsWith('RDMP-'));
+        if (rdmpKeys.length > 0) newRdmpMap[e.key] = rdmpKeys[0];
+      });
+      setRdmpMap(newRdmpMap);
 
       // ── Batch-fetch child tickets (single paginated query) ─────────────────
       if (flightKeys.length > 0) {
@@ -843,6 +861,7 @@ export default function PaymentsFlywheelDashboard() {
                 notes={notes}
                 onSaveNote={handleSaveNote}
                 showAllNotes={showAllNotes}
+                rdmpMap={rdmpMap}
               />
             ))}
           </div>
