@@ -261,6 +261,12 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
     <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: isDraggable ? 'grab' : 'default' }}>
       <div style={s.cardTop}>
         <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
+        {rdmpLink && (
+          <a href={`${JIRA_SITE}/browse/${rdmpLink}`} target="_blank" rel="noreferrer"
+             style={{ ...s.pill, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none', fontSize: 9 }}>
+            ↗ {rdmpLink}
+          </a>
+        )}
         {name && (
           <span style={{ ...s.avatar, background: avatarColor(name) }} title={name}>
             {initials(name)}
@@ -271,15 +277,9 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
         )}
       </div>
       <div style={s.cardTitle}>{fields.summary}</div>
-      {(isTechDebt || rdmpLink) && (
-        <div style={{ marginTop: 5, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {isTechDebt && <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>}
-          {rdmpLink && (
-            <a href={`${JIRA_SITE}/browse/${rdmpLink}`} target="_blank" rel="noreferrer"
-               style={{ ...s.pill, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none' }}>
-              ↗ {rdmpLink}
-            </a>
-          )}
+      {isTechDebt && (
+        <div style={{ marginTop: 5 }}>
+          <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>
         </div>
       )}
       <div style={{ ...s.cardFoot, justifyContent: 'space-between' }}>
