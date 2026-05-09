@@ -37,7 +37,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlywheelBoard } from '../../hooks/useFlywheelBoard.js';
 
@@ -530,6 +530,35 @@ function TriageSection({ issues }) {
   );
 }
 
+// ── Mobile column tab bar ─────────────────────────────────────────────────────
+const COL_SHORT = { upnext: '⏭ Up Next', starting: '🌱 Starting', indev: '🔨 In Dev', intest: '🧪 In Test', almostdone: '🏁 Done' };
+
+function MobileColTabs({ cols, activeIdx, onSelect }) {
+  return (
+    <div className="pfr-tabs" style={{
+      overflowX: 'auto', gap: 6, padding: '8px 12px', alignItems: 'center',
+      background: 'white', borderBottom: '1px solid #e5e7eb',
+      scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', flexShrink: 0,
+    }}>
+      {cols.map((col, i) => {
+        const cs = COL_STYLES[col];
+        return (
+          <button key={col} onClick={() => onSelect(i)} style={{
+            flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '5px 12px',
+            borderRadius: 20, border: '1px solid',
+            background: i === activeIdx ? cs.bg : 'white',
+            color: i === activeIdx ? cs.color : '#6b7280',
+            borderColor: i === activeIdx ? cs.border : '#e5e7eb',
+            cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
+          }}>
+            {COL_SHORT[col]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main dashboard ────────────────────────────────────────────────────────────
 const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
@@ -550,6 +579,8 @@ export default function PaymentsFlywheelDashboard() {
   const [unlockError,         setUnlockError]         = useState(null);
   const [lockAlert,           setLockAlert]           = useState(false);
   const [showAllNotes,        setShowAllNotes]        = useState(false);
+  const boardRef    = useRef(null);
+  const [activeColIdx, setActiveColIdx] = useState(0);
 
   // ── Jira load ──────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -746,6 +777,18 @@ export default function PaymentsFlywheelDashboard() {
     setGroomState({ ...groomState, [epicKey]: next });
   }
 
+  function handleBoardScroll(e) {
+    const colW = e.currentTarget.scrollWidth / COLS.length;
+    setActiveColIdx(Math.round(e.currentTarget.scrollLeft / colW));
+  }
+
+  function scrollToCol(idx) {
+    if (!boardRef.current) return;
+    const colW = boardRef.current.scrollWidth / COLS.length;
+    boardRef.current.scrollTo({ left: colW * idx, behavior: 'smooth' });
+    setActiveColIdx(idx);
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
@@ -753,6 +796,28 @@ export default function PaymentsFlywheelDashboard() {
         @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         * { box-sizing: border-box; }
+        .pfr-tabs { display: none; }
+        @media (max-width: 640px) {
+          .pfr-board {
+            display: flex !important;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding: 8px 0 !important;
+            gap: 0 !important;
+          }
+          .pfr-col {
+            min-width: 100vw !important;
+            max-width: 100vw !important;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            padding: 0 8px;
+            box-sizing: border-box;
+          }
+          .pfr-tabs { display: flex !important; }
+          .pfr-header-meta { display: none !important; }
+        }
       `}</style>
       <div style={s.root}>
 
@@ -794,6 +859,9 @@ export default function PaymentsFlywheelDashboard() {
             onRestore={isEditMode ? restoreCard : null} onClose={() => setTrayOpen(false)} />
         )}
 
+        {/* Mobile column tabs — hidden on desktop via CSS */}
+        <MobileColTabs cols={COLS} activeIdx={activeColIdx} onSelect={scrollToCol} />
+
         {/* Loading overlay — wait for both Supabase state and full Jira fetch (incl. child tickets) */}
         {(!boardLoaded || loading) && (
           <div style={{ padding: '30px 20px', textAlign: 'center', fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -833,7 +901,7 @@ export default function PaymentsFlywheelDashboard() {
 
         {/* Kanban board */}
         {boardLoaded && !loading && (
-          <div style={s.board}
+          <div style={s.board} className="pfr-board" ref={boardRef} onScroll={handleBoardScroll}
                onDragStart={e => {
                  if (!isEditMode) {
                    setLockAlert(true);
@@ -844,23 +912,24 @@ export default function PaymentsFlywheelDashboard() {
                  if (card) setDragKey(card.dataset.key);
                }}>
             {COLS.map(col => (
-              <KanbanColumn
-                key={col}
-                colId={col}
-                issues={buckets[col]}
-                childMap={childMap}
-                overrides={overrides}
-                showGroom={col === 'upnext'}
-                onHide={hideCard}
-                onDrop={handleDrop}
-                groomState={groomState}
-                onGroomToggle={handleGroomToggle}
-                editable={isEditMode}
-                notes={notes}
-                onSaveNote={handleSaveNote}
-                showAllNotes={showAllNotes}
-                rdmpMap={rdmpMap}
-              />
+              <div key={col} className="pfr-col">
+                <KanbanColumn
+                  colId={col}
+                  issues={buckets[col]}
+                  childMap={childMap}
+                  overrides={overrides}
+                  showGroom={col === 'upnext'}
+                  onHide={hideCard}
+                  onDrop={handleDrop}
+                  groomState={groomState}
+                  onGroomToggle={handleGroomToggle}
+                  editable={isEditMode}
+                  notes={notes}
+                  onSaveNote={handleSaveNote}
+                  showAllNotes={showAllNotes}
+                  rdmpMap={rdmpMap}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -892,7 +961,7 @@ const s = {
   btnActive:     { background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' },
   btnDanger:     { borderColor: '#fca5a5', color: '#b91c1c' },
 
-  board:         { display: 'grid', gridTemplateColumns: '220px 1fr 1fr 1fr 1fr', gap: 10, padding: 12, alignItems: 'start' },
+  board:         { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, padding: 12, alignItems: 'start' },
   column:        { display: 'flex', flexDirection: 'column', gap: 6 },
   colHeader:     { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2, userSelect: 'none' },
   colCount:      { marginLeft: 'auto', fontSize: 9, background: 'rgba(0,0,0,0.08)', padding: '1px 6px', borderRadius: 8 },
