@@ -535,7 +535,7 @@ const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
 export default function PaymentsFlywheelDashboard() {
   const navigate = useNavigate();
-  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, ranks, setRanks, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
+  const { overrides, setOverrides, hidden, setHidden, showTD, setShowTD, groomState, setGroomState, notes, setNotes, ranks, setRanks, loaded: boardLoaded, isEditMode, enterEditMode, exitEditMode } = useFlywheelBoard();
   const [allEpics,      setAllEpics]      = useState([]);
   const [childMap,      setChildMap]      = useState({});
   const [rdmpMap,       setRdmpMap]       = useState({});
@@ -794,10 +794,10 @@ export default function PaymentsFlywheelDashboard() {
             onRestore={isEditMode ? restoreCard : null} onClose={() => setTrayOpen(false)} />
         )}
 
-        {/* Loading overlay */}
-        {loading && allEpics.length === 0 && (
+        {/* Loading overlay — wait for Supabase board state before showing any cards */}
+        {(!boardLoaded || (loading && allEpics.length === 0)) && (
           <div style={{ padding: '30px 20px', textAlign: 'center', fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Spinner /> Fetching epics and child tickets…
+            <Spinner /> {!boardLoaded ? 'Loading board state…' : 'Fetching epics and child tickets…'}
           </div>
         )}
 
@@ -832,7 +832,7 @@ export default function PaymentsFlywheelDashboard() {
         )}
 
         {/* Kanban board */}
-        {(!loading || allEpics.length > 0) && (
+        {boardLoaded && (!loading || allEpics.length > 0) && (
           <div style={s.board}
                onDragStart={e => {
                  if (!isEditMode) {
