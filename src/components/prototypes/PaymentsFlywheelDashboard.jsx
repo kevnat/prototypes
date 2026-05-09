@@ -242,7 +242,7 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, isPinned = false, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
+function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
   const { key, fields } = issue;
   const name       = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
@@ -258,17 +258,19 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
   function saveNote() { if (onSaveNote) onSaveNote(key, draft); setNoteOpen(false); }
 
   return (
-    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, ...(isPinned ? s.cardPinned : {}), cursor: isDraggable ? 'grab' : 'default' }}>
+    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, cursor: isDraggable ? 'grab' : 'default' }}>
       <div style={s.cardTop}>
-        <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
-        {rdmpLink && (
-          <a href={`${JIRA_SITE}/browse/${rdmpLink}`} target="_blank" rel="noreferrer"
-             style={{ ...s.pill, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none', fontSize: 9 }}>
-            ↗ {rdmpLink}
-          </a>
-        )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
+          <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
+          {rdmpLink && (
+            <a href={`${JIRA_SITE}/browse/${rdmpLink}`} target="_blank" rel="noreferrer"
+               style={{ ...s.pill, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none', fontSize: 9 }}>
+              ↗ {rdmpLink}
+            </a>
+          )}
+        </div>
         {name && (
-          <span style={{ ...s.avatar, background: avatarColor(name) }} title={name}>
+          <span className="pfr-avatar" style={{ ...s.avatar, background: avatarColor(name) }} title={name}>
             {initials(name)}
           </span>
         )}
@@ -283,7 +285,10 @@ function EpicCard({ issue, childData = null, showGroom = false, isPinned = false
         </div>
       )}
       <div style={{ ...s.cardFoot, justifyContent: 'space-between' }}>
-        <span style={s.updated}>Updated {timeAgo(fields.updated)}</span>
+        <span style={s.updated}>
+          Updated {timeAgo(fields.updated)}
+          {movedFrom && <span style={{ color: '#d1d5db' }}> · moved from {COL_DISPLAY[movedFrom]}</span>}
+        </span>
         <button
           onClick={openNote}
           title={note ? 'View/edit note' : 'Add note'}
@@ -347,12 +352,15 @@ const COL_TITLES = {
   intest:    '🧪 In Test',
   almostdone:'🏁 Almost Done',
 };
+const COL_DISPLAY = {
+  upnext: 'Up Next', starting: 'Starting', indev: 'In Dev', intest: 'In Test', almostdone: 'Almost Done',
+};
 
 function DropLine() {
   return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
-function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false, rdmpMap = {} }) {
+function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false, rdmpMap = {}, movedFromMap = {} }) {
   const cs = COL_STYLES[colId];
   const [insertIdx, setInsertIdx] = useState(null);
 
@@ -381,7 +389,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     issue={i}
                     childData={colId !== 'upnext' ? (childMap[i.key] ?? null) : null}
                     showGroom={showGroom}
-                    isPinned={!!overrides[i.key]}
+                    movedFrom={movedFromMap[i.key] || null}
                     onHide={editable ? onHide : undefined}
                     groomChecks={groomState?.[i.key]}
                     onGroomToggle={onGroomToggle}
@@ -678,6 +686,15 @@ export default function PaymentsFlywheelDashboard() {
     return 'starting';
   }
 
+  function naturalCol(epic) {
+    const children = childMap[epic.key];
+    if (children && children.length > 0) return categorise(children);
+    const labels = epic.fields.labels || [];
+    if (labels.includes('pay-dev-complete')) return 'almostdone';
+    if (labels.includes('pay-in-dev'))       return 'indev';
+    return 'starting';
+  }
+
   const visible = allEpics.filter(e => {
     if (hidden.includes(e.key)) return false;
     if (!showTD && (e.fields.labels || []).includes('pay-tech-debt')) return false;
@@ -689,6 +706,17 @@ export default function PaymentsFlywheelDashboard() {
   visible.filter(e => e.fields.status.name === 'In Progress').forEach(e => {
     const col = getCol(e);
     (buckets[col] || buckets['indev']).push(e);
+  });
+
+  // Build movedFromMap: epicKey → natural column (only when different from current col)
+  const movedFromMap = {};
+  COLS.forEach(col => {
+    buckets[col].forEach(epic => {
+      if (overrides[epic.key]) {
+        const nat = naturalCol(epic);
+        if (nat !== col) movedFromMap[epic.key] = nat;
+      }
+    });
   });
 
   // Sort: pinned first, then column-specific order
@@ -818,6 +846,9 @@ export default function PaymentsFlywheelDashboard() {
           .pfr-tabs { display: flex !important; }
           .pfr-header-meta { display: none !important; }
         }
+        @media (max-width: 900px) {
+          .pfr-avatar { display: none !important; }
+        }
       `}</style>
       <div style={s.root}>
 
@@ -928,6 +959,7 @@ export default function PaymentsFlywheelDashboard() {
                   onSaveNote={handleSaveNote}
                   showAllNotes={showAllNotes}
                   rdmpMap={rdmpMap}
+                  movedFromMap={movedFromMap}
                 />
               </div>
             ))}
