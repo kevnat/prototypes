@@ -794,8 +794,8 @@ export default function PaymentsFlywheelDashboard() {
             onRestore={isEditMode ? restoreCard : null} onClose={() => setTrayOpen(false)} />
         )}
 
-        {/* Loading overlay — wait for Supabase board state before showing any cards */}
-        {(!boardLoaded || (loading && allEpics.length === 0)) && (
+        {/* Loading overlay — wait for both Supabase state and full Jira fetch (incl. child tickets) */}
+        {(!boardLoaded || loading) && (
           <div style={{ padding: '30px 20px', textAlign: 'center', fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <Spinner /> {!boardLoaded ? 'Loading board state…' : 'Fetching epics and child tickets…'}
           </div>
@@ -832,7 +832,7 @@ export default function PaymentsFlywheelDashboard() {
         )}
 
         {/* Kanban board */}
-        {boardLoaded && (!loading || allEpics.length > 0) && (
+        {boardLoaded && !loading && (
           <div style={s.board}
                onDragStart={e => {
                  if (!isEditMode) {
