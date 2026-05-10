@@ -620,13 +620,17 @@ function formatDiffItem(item) {
   }
 }
 
-function DiffTicker({ items, onDismiss }) {
+function DiffTicker({ items }) {
+  const [paused, setPaused] = useState(false);
   const repeated = [...items, ...items];
-  const duration = Math.max(10, items.length * 5);
+  const duration = Math.max(30, items.length * 14);
   return (
     <div style={s.ticker}>
+      <button onClick={() => setPaused(p => !p)} style={s.tickerPause} title={paused ? 'Resume' : 'Pause'}>
+        {paused ? '▶' : '⏸'}
+      </button>
       <div style={s.tickerTrack}>
-        <div style={{ ...s.tickerContent, animationDuration: `${duration}s` }}>
+        <div style={{ ...s.tickerContent, animationDuration: `${duration}s`, animationPlayState: paused ? 'paused' : 'running' }}>
           {repeated.map((item, i) => (
             <span key={i} style={s.tickerItem}>
               <span style={{ color: DIFF_COLORS[item.type], fontWeight: 800, marginRight: 4 }}>
@@ -637,7 +641,6 @@ function DiffTicker({ items, onDismiss }) {
           ))}
         </div>
       </div>
-      <button onClick={onDismiss} style={s.tickerDismiss}>✕</button>
     </div>
   );
 }
@@ -1018,7 +1021,7 @@ export default function PaymentsFlywheelDashboard() {
             <span style={s.h1}>Payments Epic Board</span>
           </div>
           {diffVisible && diffItems.length > 0 && (
-            <DiffTicker items={diffItems} onDismiss={() => setDiffVisible(false)} />
+            <DiffTicker items={diffItems} />
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
             <span style={s.meta}>{meta}</span>
@@ -1193,11 +1196,11 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, maxWidth: 340, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #f0f0f0', background: '#fafafa', margin: '0 8px' },
-  tickerTrack:   { flex: 1, overflow: 'hidden', height: '100%', display: 'flex', alignItems: 'center', maskImage: 'linear-gradient(to right, transparent, #000 18%, #000 82%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 18%, #000 82%, transparent)' },
+  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #f0f0f0', background: '#fafafa', margin: '0 12px' },
+  tickerPause:   { flexShrink: 0, background: 'none', border: 'none', borderRight: '1px solid #f0f0f0', cursor: 'pointer', fontSize: 9, color: '#c4c9d4', padding: '0 9px', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
+  tickerTrack:   { flex: 1, overflow: 'hidden', height: '100%', display: 'flex', alignItems: 'center', maskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)' },
   tickerContent: { display: 'inline-flex', alignItems: 'center', animation: 'ticker-scroll linear infinite', whiteSpace: 'nowrap' },
-  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 40, whiteSpace: 'nowrap' },
-  tickerDismiss: { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#c4c9d4', padding: '0 8px', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid #f0f0f0' },
+  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 48, whiteSpace: 'nowrap' },
   th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
   td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
