@@ -81,22 +81,22 @@ const IN_REVIEW_TEST = new Set([
 
 // ── Display helpers ───────────────────────────────────────────────────────────
 const AVATAR_COLORS = {
-  'Kevin Nathan':         '#2563eb',
-  'Alexander Kazimirsky': '#7c3aed',
-  'Ilia Gladyshev':       '#059669',
-  'Bryan Burke':          '#d97706',
-  'Morgan Stanton':       '#db2777',
-  'Matthew Kalan':        '#0891b2',
-  'Stephen Rousey':       '#65a30d',
-  'Anton Shokhrin':       '#dc2626',
+  'Kevin Nathan':         '#61642b',
+  'Alexander Kazimirsky': '#481f1f',
+  'Ilia Gladyshev':       '#936a2f',
+  'Bryan Burke':          '#d97066',
+  'Morgan Stanton':       '#b49c84',
+  'Matthew Kalan':        '#95ada3',
+  'Stephen Rousey':       '#7a7535',
+  'Anton Shokhrin':       '#a84438',
 };
 
 const LABEL_STYLES = {
-  'pay-in-dev':       { bg: '#dbeafe', color: '#1d4ed8', text: 'in dev'    },
-  'pay-dev-complete': { bg: '#d1fae5', color: '#065f46', text: 'dev done'  },
-  'pay-up-next':      { bg: '#ede9fe', color: '#5b21b6', text: 'up next'   },
-  'pay-tech-debt':    { bg: '#ffedd5', color: '#9a3412', text: 'tech debt' },
-  'pay_docs':         { bg: '#e0f2fe', color: '#0369a1', text: 'docs'      },
+  'pay-in-dev':       { bg: '#eaebda', color: '#4a4c1f', text: 'in dev'    },
+  'pay-dev-complete': { bg: '#eef2f1', color: '#3d6b63', text: 'dev done'  },
+  'pay-up-next':      { bg: '#f3f4ec', color: '#5e6245', text: 'up next'   },
+  'pay-tech-debt':    { bg: '#f3ece0', color: '#7a5522', text: 'tech debt' },
+  'pay_docs':         { bg: '#f7e9e7', color: '#a84438', text: 'docs'      },
 };
 
 const PRIORITY_COLORS = {
@@ -265,7 +265,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
           <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
           {rdmpLink && (
             <a href={`${JIRA_SITE}/browse/${rdmpLink}`} target="_blank" rel="noreferrer"
-               style={{ ...s.pill, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none', fontSize: 9 }}>
+               style={{ ...s.pill, background: '#eaebda', color: '#4a4c1f', border: '1px solid #929557', textDecoration: 'none', fontSize: 9 }}>
               ↗ {rdmpLink}
             </a>
           )}
@@ -277,7 +277,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
       <div style={s.cardTitle}>{fields.summary}</div>
       {isTechDebt && (
         <div style={{ marginTop: 5 }}>
-          <span style={{ ...s.pill, background: '#ffedd5', color: '#9a3412' }}>tech debt</span>
+          <span style={{ ...s.pill, background: '#f3ece0', color: '#7a5522' }}>tech debt</span>
         </div>
       )}
       <div style={{ ...s.cardFoot, justifyContent: 'space-between' }}>
@@ -289,7 +289,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
           onClick={openNote}
           title={note ? 'View/edit note' : 'Add note'}
           style={note
-            ? { fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#dbeafe', color: '#1d4ed8', cursor: 'pointer', lineHeight: 1.6, whiteSpace: 'nowrap' }
+            ? { fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, border: '1px solid #95ada3', background: '#eef2f1', color: '#3d6b63', cursor: 'pointer', lineHeight: 1.6, whiteSpace: 'nowrap' }
             : { background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontSize: 11, color: '#d1d5db' }
           }
         >
@@ -310,7 +310,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
               />
               <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', marginTop: 4 }}>
                 <button onClick={() => setNoteOpen(false)} style={{ ...s.btn, fontSize: 9, padding: '3px 7px' }}>Cancel</button>
-                <button onClick={saveNote} style={{ ...s.btn, fontSize: 9, padding: '3px 7px', background: '#2563eb', color: 'white', borderColor: '#2563eb' }}>Save</button>
+                <button onClick={saveNote} style={{ ...s.btn, fontSize: 9, padding: '3px 7px', background: '#61642b', color: 'white', borderColor: '#61642b' }}>Save</button>
               </div>
             </>
           ) : (
@@ -335,11 +335,11 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
 
 // ── Kanban column ─────────────────────────────────────────────────────────────
 const COL_STYLES = {
-  upnext:    { bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' },
-  starting:  { bg: '#fefce8', color: '#854d0e', border: '#fde047' },
-  indev:     { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-  intest:    { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa' },
-  almostdone:{ bg: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' },
+  upnext:    { bg: '#eef2f1', color: '#3d6b63', border: '#95ada3' },
+  starting:  { bg: '#f3f4ec', color: '#5e6245', border: '#b5ba94' },
+  indev:     { bg: '#eaebda', color: '#4a4c1f', border: '#929557' },
+  intest:    { bg: '#f3ece0', color: '#7a5522', border: '#b89060' },
+  almostdone:{ bg: '#f7e9e7', color: '#a84438', border: '#d97066' },
 };
 const COL_TITLES = {
   upnext:    '⏭️ Up Next',
@@ -353,7 +353,7 @@ const COL_DISPLAY = {
 };
 
 function DropLine() {
-  return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
+  return <div style={{ height: 3, borderRadius: 2, background: '#936a2f', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
 function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false, rdmpMap = {}, movedFromMap = {}, diffMap = {} }) {
@@ -602,7 +602,7 @@ function computeDiff(snapshot, liveEpics, liveChildMap, getColFn, overrides = {}
 }
 
 const DIFF_ICONS  = { moved: '→', progressed: '↑', appeared: '+', completed: '✓' };
-const DIFF_COLORS = { moved: '#2563eb', progressed: '#059669', appeared: '#7c3aed', completed: '#9ca3af' };
+const DIFF_COLORS = { moved: '#95ada3', progressed: '#61642b', appeared: '#936a2f', completed: '#b49c84' };
 
 function formatDiffItem(item) {
   const label = item.summary || item.key;
@@ -1099,7 +1099,7 @@ export default function PaymentsFlywheelDashboard() {
               {unlockError && <div style={{ fontSize: 10, color: '#b91c1c', marginBottom: 8 }}>{unlockError}</div>}
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 <button onClick={() => setShowPassphraseModal(false)} style={s.btn}>Cancel</button>
-                <button onClick={handleUnlock} style={{ ...s.btn, background: '#2563eb', color: 'white', borderColor: '#2563eb' }}>Unlock</button>
+                <button onClick={handleUnlock} style={{ ...s.btn, background: '#61642b', color: 'white', borderColor: '#61642b' }}>Unlock</button>
               </div>
             </div>
           </div>
@@ -1158,22 +1158,22 @@ export default function PaymentsFlywheelDashboard() {
 function Spinner() {
   return (
     <span style={{ display: 'inline-block', width: 13, height: 13,
-      border: '2px solid #e5e7eb', borderTopColor: '#2563eb',
+      border: '2px solid #e5e7eb', borderTopColor: '#61642b',
       borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
-  root:          { fontFamily: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#f1f3f6', minHeight: '100vh', color: '#111827' },
-  header:        { background: 'white', borderBottom: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 },
+  root:          { fontFamily: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#f2f0eb', minHeight: '100vh', color: '#2a2015' },
+  header:        { background: '#faf9f6', borderBottom: '1px solid #e8e4db', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, zIndex: 100 },
   h1:            { fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' },
   meta:          { fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap' },
   errorBanner:   { background: '#fee2e2', borderBottom: '1px solid #fca5a5', padding: '8px 16px', fontSize: 11, color: '#b91c1c' },
 
   backBtn:       { fontSize: 14, lineHeight: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280' },
   btn:           { fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' },
-  btnActive:     { background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' },
+  btnActive:     { background: '#eef2f1', borderColor: '#95ada3', color: '#3d6b63' },
   btnDanger:     { borderColor: '#fca5a5', color: '#b91c1c' },
 
   board:         { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, padding: 12, alignItems: 'start' },
@@ -1181,11 +1181,11 @@ const s = {
   colHeader:     { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2, userSelect: 'none' },
   colCount:      { marginLeft: 'auto', fontSize: 9, background: 'rgba(0,0,0,0.08)', padding: '1px 6px', borderRadius: 8 },
   dropZone:      { display: 'flex', flexDirection: 'column', gap: 6, minHeight: 80, borderRadius: 8, padding: 2, transition: 'background 0.15s, outline 0.15s' },
-  dropZoneActive:{ background: 'rgba(37,99,235,0.06)', outline: '2px dashed #93c5fd' },
+  dropZoneActive:{ background: 'rgba(97,100,43,0.05)', outline: '2px dashed #b5ba94' },
   empty:         { padding: '14px 8px', textAlign: 'center', fontSize: 10, color: '#c4c9d4', border: '1px dashed #e5e7eb', borderRadius: 6 },
 
-  card:          { background: 'white', borderRadius: 8, border: '1px solid #e5e7eb', padding: '10px 11px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', cursor: 'grab', userSelect: 'none', position: 'relative' },
-  cardPinned:    { borderLeft: '3px solid #6366f1' },
+  card:          { background: '#fdf9f4', borderRadius: 8, border: '1px solid #e8e4db', padding: '10px 11px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: 'grab', userSelect: 'none', position: 'relative' },
+  cardPinned:    { borderLeft: '3px solid #936a2f' },
   cardTop:       { display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, paddingRight: 20 },
   epicKey:       { fontSize: 10, fontWeight: 700, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap' },
   pDot:          { width: 6, height: 6, borderRadius: '50%', flexShrink: 0 },
@@ -1200,18 +1200,18 @@ const s = {
   groomBtn:      { width: '100%', background: 'none', border: '1px solid #e5e7eb', borderRadius: 5, padding: '4px 7px', fontSize: 9, fontWeight: 600, color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' },
   groomItem:     { display: 'flex', alignItems: 'center', gap: 5, padding: '2px 0', fontSize: 9, color: '#374151', cursor: 'pointer' },
   groomBar:      { height: 2, background: '#e5e7eb', borderRadius: 2, marginTop: 5, overflow: 'hidden' },
-  groomFill:     { height: '100%', background: '#2563eb', borderRadius: 2, transition: 'width 0.2s' },
+  groomFill:     { height: '100%', background: '#61642b', borderRadius: 2, transition: 'width 0.2s' },
 
   hiddenTray:    { margin: '0 12px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' },
   hiddenTrayHead:{ padding: '8px 12px', fontSize: 10, fontWeight: 700, color: '#6b7280', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 8 },
   hiddenChip:    { display: 'flex', alignItems: 'center', gap: 5, background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 5, padding: '3px 8px', fontSize: 10, color: '#374151' },
   restoreBtn:    { background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#9ca3af', padding: '0 2px', lineHeight: 1 },
 
-  lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
-  lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #f0f0f0', background: '#fafafa', margin: '0 12px' },
-  tickerPause:   { flexShrink: 0, background: 'none', border: 'none', borderRight: '1px solid #f0f0f0', cursor: 'pointer', fontSize: 9, color: '#c4c9d4', padding: '0 9px', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
+  lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#481f1f', color: '#f7e9e7', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(72,31,31,0.3)' },
+  lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #d5c9bb', background: '#f3ece0', color: '#7a5522', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
+  editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #929557', background: '#eaebda', color: '#4a4c1f', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
+  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #e0d9cc', background: '#f5f2eb', margin: '0 12px' },
+  tickerPause:   { flexShrink: 0, background: 'none', border: 'none', borderRight: '1px solid #e0d9cc', cursor: 'pointer', fontSize: 9, color: '#b49c84', padding: '0 9px', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
   tickerTrack:   { flex: 1, overflowX: 'auto', overflowY: 'hidden', height: '100%', display: 'flex', alignItems: 'center', scrollbarWidth: 'none', msOverflowStyle: 'none', maskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)' },
   tickerContent: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' },
   tickerItem:    { fontSize: 10, color: '#374151', marginRight: 24, whiteSpace: 'nowrap' },
