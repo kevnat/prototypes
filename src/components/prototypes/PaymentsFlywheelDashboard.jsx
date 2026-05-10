@@ -243,7 +243,7 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
+function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null, diffType = null, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
   const { key, fields } = issue;
   const name       = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
@@ -259,7 +259,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
   function saveNote() { if (onSaveNote) onSaveNote(key, draft); setNoteOpen(false); }
 
   return (
-    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, cursor: isDraggable ? 'grab' : 'default' }}>
+    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, cursor: isDraggable ? 'grab' : 'default', ...(diffType ? { borderTop: `3px solid ${DIFF_COLORS[diffType]}` } : {}) }}>
       <div style={s.cardTop}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
           <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
@@ -356,7 +356,7 @@ function DropLine() {
   return <div style={{ height: 3, borderRadius: 2, background: '#2563eb', margin: '2px 4px', flexShrink: 0 }} />;
 }
 
-function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false, rdmpMap = {}, movedFromMap = {} }) {
+function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, onHide, onDrop, groomState, onGroomToggle, editable = false, notes = {}, onSaveNote, showAllNotes = false, rdmpMap = {}, movedFromMap = {}, diffMap = {} }) {
   const cs = COL_STYLES[colId];
   const [insertIdx, setInsertIdx] = useState(null);
 
@@ -386,6 +386,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     childData={colId !== 'upnext' ? (childMap[i.key] ?? null) : null}
                     showGroom={showGroom}
                     movedFrom={movedFromMap[i.key] || null}
+                    diffType={diffMap[i.key] || null}
                     onHide={editable ? onHide : undefined}
                     groomChecks={groomState?.[i.key]}
                     onGroomToggle={onGroomToggle}
@@ -844,6 +845,10 @@ export default function PaymentsFlywheelDashboard() {
     (buckets[col] || buckets['indev']).push(e);
   });
 
+  // Build diffMap: epicKey → diff type (for card-level indicator)
+  const diffMap = {};
+  diffItems.forEach(item => { if (item.key) diffMap[item.key] = item.type; });
+
   // Build movedFromMap: epicKey → natural column (only when different from current col)
   const movedFromMap = {};
   COLS.forEach(col => {
@@ -1104,6 +1109,7 @@ export default function PaymentsFlywheelDashboard() {
                   showAllNotes={showAllNotes}
                   rdmpMap={rdmpMap}
                   movedFromMap={movedFromMap}
+                  diffMap={diffMap}
                 />
               </div>
             ))}
