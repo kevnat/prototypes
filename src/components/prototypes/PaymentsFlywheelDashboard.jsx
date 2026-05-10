@@ -243,7 +243,17 @@ function ProgressSummary({ children }) {
 }
 
 // ── Epic card ─────────────────────────────────────────────────────────────────
-function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null, diffType = null, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
+function diffNote(item) {
+  if (!item) return null;
+  switch (item.type) {
+    case 'moved':      return `→ ${COL_DISPLAY[item.to] ?? item.to}`;
+    case 'progressed': return `↑ +${item.doneDelta} done`;
+    case 'appeared':   return '+ new this cycle';
+    default: return null;
+  }
+}
+
+function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null, diffItem = null, onHide, groomChecks, onGroomToggle, onDragOver, colColor, isDraggable = false, note = '', onSaveNote, showAllNotes = false, rdmpLink = null }) {
   const { key, fields } = issue;
   const name       = fields.assignee?.displayName;
   const url        = `${JIRA_SITE}/browse/${key}`;
@@ -259,7 +269,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
   function saveNote() { if (onSaveNote) onSaveNote(key, draft); setNoteOpen(false); }
 
   return (
-    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, cursor: isDraggable ? 'grab' : 'default', ...(diffType ? { borderTop: `3px solid ${DIFF_COLORS[diffType]}` } : {}) }}>
+    <div draggable={isDraggable} data-key={key} onDragOver={onDragOver} style={{ ...s.card, cursor: isDraggable ? 'grab' : 'default' }}>
       <div style={s.cardTop}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
           <a href={url} target="_blank" rel="noreferrer" style={{ ...s.epicKey, color: colColor }}>{key}</a>
@@ -284,6 +294,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
         <span style={s.updated}>
           Updated {timeAgo(fields.updated)}
           {movedFrom && <span style={{ color: '#d1d5db' }}> · moved from {COL_DISPLAY[movedFrom]}</span>}
+          {diffNote(diffItem) && <span style={{ color: DIFF_COLORS[diffItem.type], fontWeight: 600 }}> · {diffNote(diffItem)}</span>}
         </span>
         <button
           onClick={openNote}
@@ -335,9 +346,9 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
 
 // ── Kanban column ─────────────────────────────────────────────────────────────
 const COL_STYLES = {
-  upnext:    { bg: '#eef2f1', color: '#3d6b63', border: '#95ada3' },
-  starting:  { bg: '#f3f4ec', color: '#5e6245', border: '#b5ba94' },
-  indev:     { bg: '#eaebda', color: '#4a4c1f', border: '#929557' },
+  upnext:    { bg: '#cde0dc', color: '#24524a', border: '#7faaa4' },
+  starting:  { bg: '#dde0c4', color: '#424d1a', border: '#9aa370' },
+  indev:     { bg: '#c8cc9e', color: '#2e3008', border: '#777b3a' },
   intest:    { bg: '#f3ece0', color: '#7a5522', border: '#b89060' },
   almostdone:{ bg: '#f7e9e7', color: '#a84438', border: '#d97066' },
 };
@@ -386,7 +397,7 @@ function KanbanColumn({ colId, issues, childMap, overrides, showGroom = false, o
                     childData={colId !== 'upnext' ? (childMap[i.key] ?? null) : null}
                     showGroom={showGroom}
                     movedFrom={movedFromMap[i.key] || null}
-                    diffType={diffMap[i.key] || null}
+                    diffItem={diffMap[i.key] || null}
                     onHide={editable ? onHide : undefined}
                     groomChecks={groomState?.[i.key]}
                     onGroomToggle={onGroomToggle}
@@ -622,22 +633,29 @@ function formatDiffItem(item) {
 
 function DiffTicker({ items }) {
   const [paused, setPaused] = useState(false);
-  const trackRef = useRef(null);
-  const rafRef   = useRef(null);
-  const repeated = [...items, ...items]; // duplicate for seamless loop
+  const trackRef  = useRef(null);
+  const rafRef    = useRef(null);
+  const pausedRef = useRef(false);
+  const repeated  = [...items, ...items];
 
+  // Keep pausedRef in sync so the rAF closure sees the latest value
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // Single persistent loop — never restarts, just checks pausedRef each frame
   useEffect(() => {
-    if (paused) { cancelAnimationFrame(rafRef.current); return; }
     function step() {
-      const el = trackRef.current;
-      if (!el) return;
-      el.scrollLeft += 0.35;
-      if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft -= el.scrollWidth / 2;
+      if (!pausedRef.current) {
+        const el = trackRef.current;
+        if (el) {
+          el.scrollLeft += 0.4;
+          if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft -= el.scrollWidth / 2;
+        }
+      }
       rafRef.current = requestAnimationFrame(step);
     }
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [paused]);
+  }, []); // mount/unmount only
 
   return (
     <div style={s.ticker}>
@@ -880,9 +898,9 @@ export default function PaymentsFlywheelDashboard() {
     (buckets[col] || buckets['indev']).push(e);
   });
 
-  // Build diffMap: epicKey → diff type (for card-level indicator)
+  // Build diffMap: epicKey → full diff item (for card footer note)
   const diffMap = {};
-  diffItems.forEach(item => { if (item.key) diffMap[item.key] = item.type; });
+  diffItems.forEach(item => { if (item.key) diffMap[item.key] = item; });
 
   // Build movedFromMap: epicKey → natural column (only when different from current col)
   const movedFromMap = {};
@@ -1210,8 +1228,8 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#481f1f', color: '#f7e9e7', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(72,31,31,0.3)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #d5c9bb', background: '#f3ece0', color: '#7a5522', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #929557', background: '#eaebda', color: '#4a4c1f', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #e0d9cc', background: '#f5f2eb', margin: '0 12px' },
-  tickerPause:   { flexShrink: 0, background: 'none', border: 'none', borderRight: '1px solid #e0d9cc', cursor: 'pointer', fontSize: 9, color: '#b49c84', padding: '0 9px', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
+  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', margin: '0 12px' },
+  tickerPause:   { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, color: '#b49c84', padding: '0 8px 0 0', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
   tickerTrack:   { flex: 1, overflowX: 'auto', overflowY: 'hidden', height: '100%', display: 'flex', alignItems: 'center', scrollbarWidth: 'none', msOverflowStyle: 'none', maskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)' },
   tickerContent: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' },
   tickerItem:    { fontSize: 10, color: '#374151', marginRight: 24, whiteSpace: 'nowrap' },
