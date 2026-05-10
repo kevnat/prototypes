@@ -619,12 +619,12 @@ function formatDiffItem(item) {
   const label = item.summary || item.key;
   switch (item.type) {
     case 'moved':
-      return `${label}: ${COL_DISPLAY[item.from] ?? item.from} → ${COL_DISPLAY[item.to] ?? item.to}` +
+      return `${label}: moved to ${COL_DISPLAY[item.to] ?? item.to}` +
              (item.doneDelta > 0 ? ` (+${item.doneDelta} done)` : '');
     case 'progressed':
       return `${label}: ${item.doneNow}/${item.totalNow} done (+${item.doneDelta})`;
     case 'appeared':
-      return `${label} · appeared in ${COL_DISPLAY[item.to] ?? item.to}`;
+      return `${label} · queued up next`;
     case 'completed':
       return `${label} · left the board`;
     default: return label;
@@ -632,39 +632,28 @@ function formatDiffItem(item) {
 }
 
 function DiffTicker({ items }) {
-  const [paused, setPaused] = useState(false);
-  const trackRef  = useRef(null);
-  const rafRef    = useRef(null);
-  const pausedRef = useRef(false);
-  const repeated  = [...items, ...items];
+  const wrapRef    = useRef(null);
+  const contentRef = useRef(null);
+  const [kf,  setKf]  = useState('');
+  const [dur, setDur] = useState(0);
 
-  // Keep pausedRef in sync so the rAF closure sees the latest value
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
-
-  // Single persistent loop — never restarts, just checks pausedRef each frame
   useEffect(() => {
-    function step() {
-      if (!pausedRef.current) {
-        const el = trackRef.current;
-        if (el) {
-          el.scrollLeft += 0.4;
-          if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft -= el.scrollWidth / 2;
-        }
-      }
-      rafRef.current = requestAnimationFrame(step);
-    }
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []); // mount/unmount only
+    const wrap    = wrapRef.current;
+    const content = contentRef.current;
+    if (!wrap || !content) return;
+    const cw = wrap.clientWidth;
+    const tw = content.scrollWidth;
+    // Travel: enters from right edge of container, exits fully off the left
+    setKf(`@keyframes pfr-ticker{from{transform:translateX(${cw}px)}to{transform:translateX(-${tw}px)}}`);
+    setDur((cw + tw) / 80); // 80 px/s
+  }, [items]);
 
   return (
-    <div style={s.ticker}>
-      <button onClick={() => setPaused(p => !p)} style={s.tickerPause} title={paused ? 'Resume' : 'Pause'}>
-        {paused ? '▶' : '⏸'}
-      </button>
-      <div ref={trackRef} style={s.tickerTrack}>
-        <div style={s.tickerContent}>
-          {repeated.map((item, i) => (
+    <>
+      {kf && <style>{kf}</style>}
+      <div ref={wrapRef} style={s.tickerWrap}>
+        <div ref={contentRef} style={{ ...s.tickerContent, ...(dur && { animation: `pfr-ticker ${dur}s linear infinite` }) }}>
+          {items.map((item, i) => (
             <span key={i} style={s.tickerItem}>
               <span style={{ color: DIFF_COLORS[item.type], fontWeight: 800, marginRight: 4 }}>
                 {DIFF_ICONS[item.type]}
@@ -674,7 +663,7 @@ function DiffTicker({ items }) {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -830,27 +819,6 @@ export default function PaymentsFlywheelDashboard() {
           realChanges = computeDiff(oldSnap, allEpics, childMap, getCol, overrides);
           if (realChanges.length > 0) { setDiffItems(realChanges); setDiffVisible(true); }
         }
-
-        // ── STUB: remove once real diffs are observed in production ──────────
-        if (realChanges.length === 0 && allEpics.length >= 3) {
-          const [e0, e1, e2] = allEpics;
-          const cols = COLS.filter(c => c !== 'upnext');
-          const stubAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // 2h ago
-          const snap0 = newSnapEpics[e0.key];
-          const snap1 = newSnapEpics[e1.key];
-          setDiffAt(stubAt);
-          setDiffItems([
-            { type: 'moved',      key: e0.key, summary: snap0?.summary || e0.fields.summary.slice(0,60),
-              from: cols[(cols.indexOf(snap0?.col) + 1) % cols.length] ?? 'starting', to: snap0?.col ?? 'indev',
-              doneDelta: 0 },
-            { type: 'progressed', key: e1.key, summary: snap1?.summary || e1.fields.summary.slice(0,60),
-              doneDelta: 2, doneNow: (snap1?.done ?? 0) + 2, totalNow: snap1?.total ?? 10 },
-            { type: 'appeared',   key: e2.key, summary: newSnapEpics[e2.key]?.summary || e2.fields.summary.slice(0,60),
-              to: newSnapEpics[e2.key]?.col ?? 'starting' },
-          ]);
-          setDiffVisible(true);
-        }
-        // ── END STUB ─────────────────────────────────────────────────────────
 
         // Upsert new snapshot (non-blocking — if this fails, old snapshot is preserved)
         await supabase
@@ -1052,9 +1020,6 @@ export default function PaymentsFlywheelDashboard() {
             <button onClick={() => navigate('/home')} style={s.backBtn}>←</button>
             <span style={s.h1}>Payments Epic Board</span>
           </div>
-          {diffVisible && diffItems.length > 0 && (
-            <DiffTicker items={diffItems} />
-          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
             <span style={s.meta}>{meta}</span>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
@@ -1083,6 +1048,11 @@ export default function PaymentsFlywheelDashboard() {
         </div>
 
         {error && <div style={s.errorBanner}>Error: {error}</div>}
+
+        {/* Changes ticker */}
+        {diffVisible && diffItems.length > 0 && (
+          <DiffTicker items={diffItems} />
+        )}
 
         {/* Hidden tray */}
         {trayOpen && (
@@ -1205,7 +1175,7 @@ const s = {
   card:          { background: '#fdf9f4', borderRadius: 8, border: '1px solid #e8e4db', padding: '10px 11px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', cursor: 'grab', userSelect: 'none', position: 'relative' },
   cardPinned:    { borderLeft: '3px solid #936a2f' },
   cardTop:       { display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, paddingRight: 20 },
-  epicKey:       { fontSize: 10, fontWeight: 700, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap' },
+  epicKey:       { fontSize: 10, fontWeight: 700, textDecoration: 'none', background: 'white', padding: '2px 7px', borderRadius: 5, whiteSpace: 'nowrap', border: '1.5px solid currentColor' },
   pDot:          { width: 6, height: 6, borderRadius: '50%', flexShrink: 0 },
   avatar:        { marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: 'white', flexShrink: 0 },
   hideBtn:       { position: 'absolute', top: 7, right: 8, width: 16, height: 16, borderRadius: '50%', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 },
@@ -1228,11 +1198,9 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#481f1f', color: '#f7e9e7', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(72,31,31,0.3)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #d5c9bb', background: '#f3ece0', color: '#7a5522', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #929557', background: '#eaebda', color: '#4a4c1f', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', margin: '0 12px' },
-  tickerPause:   { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, color: '#b49c84', padding: '0 8px 0 0', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
-  tickerTrack:   { flex: 1, overflowX: 'auto', overflowY: 'hidden', height: '100%', display: 'flex', alignItems: 'center', scrollbarWidth: 'none', msOverflowStyle: 'none', maskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)' },
-  tickerContent: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' },
-  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 24, whiteSpace: 'nowrap' },
+  tickerWrap:    { height: 28, margin: '0 12px 4px', overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)' },
+  tickerContent: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', height: '100%' },
+  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 32, whiteSpace: 'nowrap' },
   th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
   td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
