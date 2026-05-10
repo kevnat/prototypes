@@ -622,15 +622,30 @@ function formatDiffItem(item) {
 
 function DiffTicker({ items }) {
   const [paused, setPaused] = useState(false);
-  const repeated = [...items, ...items];
-  const duration = Math.max(30, items.length * 14);
+  const trackRef = useRef(null);
+  const rafRef   = useRef(null);
+  const repeated = [...items, ...items]; // duplicate for seamless loop
+
+  useEffect(() => {
+    if (paused) { cancelAnimationFrame(rafRef.current); return; }
+    function step() {
+      const el = trackRef.current;
+      if (!el) return;
+      el.scrollLeft += 0.35;
+      if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft -= el.scrollWidth / 2;
+      rafRef.current = requestAnimationFrame(step);
+    }
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [paused]);
+
   return (
     <div style={s.ticker}>
       <button onClick={() => setPaused(p => !p)} style={s.tickerPause} title={paused ? 'Resume' : 'Pause'}>
         {paused ? '▶' : '⏸'}
       </button>
-      <div style={s.tickerTrack}>
-        <div style={{ ...s.tickerContent, animationDuration: `${duration}s`, animationPlayState: paused ? 'paused' : 'running' }}>
+      <div ref={trackRef} style={s.tickerTrack}>
+        <div style={s.tickerContent}>
           {repeated.map((item, i) => (
             <span key={i} style={s.tickerItem}>
               <span style={{ color: DIFF_COLORS[item.type], fontWeight: 800, marginRight: 4 }}>
@@ -984,7 +999,6 @@ export default function PaymentsFlywheelDashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         * { box-sizing: border-box; }
         .pfr-tabs { display: none; }
         @media (max-width: 640px) {
@@ -1198,9 +1212,9 @@ const s = {
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #f0f0f0', background: '#fafafa', margin: '0 12px' },
   tickerPause:   { flexShrink: 0, background: 'none', border: 'none', borderRight: '1px solid #f0f0f0', cursor: 'pointer', fontSize: 9, color: '#c4c9d4', padding: '0 9px', alignSelf: 'stretch', display: 'flex', alignItems: 'center' },
-  tickerTrack:   { flex: 1, overflow: 'hidden', height: '100%', display: 'flex', alignItems: 'center', maskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)' },
-  tickerContent: { display: 'inline-flex', alignItems: 'center', animation: 'ticker-scroll linear infinite', whiteSpace: 'nowrap' },
-  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 48, whiteSpace: 'nowrap' },
+  tickerTrack:   { flex: 1, overflowX: 'auto', overflowY: 'hidden', height: '100%', display: 'flex', alignItems: 'center', scrollbarWidth: 'none', msOverflowStyle: 'none', maskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)' },
+  tickerContent: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' },
+  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 24, whiteSpace: 'nowrap' },
   th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
   td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
