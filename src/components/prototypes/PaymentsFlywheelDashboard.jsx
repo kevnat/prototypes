@@ -620,29 +620,24 @@ function formatDiffItem(item) {
   }
 }
 
-function ChangesSummary({ items, snapshotAt, onDismiss }) {
-  const ago = snapshotAt ? timeAgo(snapshotAt) : null;
+function DiffTicker({ items, onDismiss }) {
+  const repeated = [...items, ...items];
+  const duration = Math.max(10, items.length * 5);
   return (
-    <div style={s.diffBanner}>
-      <div style={s.diffHeader}>
-        <span style={{ fontWeight: 700, fontSize: 11, color: '#111827' }}>
-          Changes since {ago ?? 'last load'}
-        </span>
-        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#6b7280' }}>
-          {items.length} update{items.length !== 1 ? 's' : ''}
-        </span>
-        <button onClick={onDismiss} style={s.diffDismiss}>✕</button>
-      </div>
-      <ul style={s.diffList}>
-        {items.map((item, i) => (
-          <li key={`${item.key}-${i}`} style={s.diffItem}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: DIFF_COLORS[item.type], minWidth: 14 }}>
-              {DIFF_ICONS[item.type]}
+    <div style={s.ticker}>
+      <div style={s.tickerTrack}>
+        <div style={{ ...s.tickerContent, animationDuration: `${duration}s` }}>
+          {repeated.map((item, i) => (
+            <span key={i} style={s.tickerItem}>
+              <span style={{ color: DIFF_COLORS[item.type], fontWeight: 800, marginRight: 4 }}>
+                {DIFF_ICONS[item.type]}
+              </span>
+              {formatDiffItem(item)}
             </span>
-            {formatDiffItem(item)}
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      </div>
+      <button onClick={onDismiss} style={s.tickerDismiss}>✕</button>
     </div>
   );
 }
@@ -986,6 +981,7 @@ export default function PaymentsFlywheelDashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         * { box-sizing: border-box; }
         .pfr-tabs { display: none; }
         @media (max-width: 640px) {
@@ -1017,11 +1013,14 @@ export default function PaymentsFlywheelDashboard() {
 
         {/* Header */}
         <div style={s.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button onClick={() => navigate('/home')} style={s.backBtn}>←</button>
             <span style={s.h1}>Payments Epic Board</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {diffVisible && diffItems.length > 0 && (
+            <DiffTicker items={diffItems} onDismiss={() => setDiffVisible(false)} />
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
             <span style={s.meta}>{meta}</span>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
               {showTD ? 'Hide tech debt' : 'Show tech debt'}
@@ -1054,11 +1053,6 @@ export default function PaymentsFlywheelDashboard() {
         {trayOpen && (
           <HiddenTray hidden={hidden} allEpics={allEpics}
             onRestore={isEditMode ? restoreCard : null} onClose={() => setTrayOpen(false)} />
-        )}
-
-        {/* Changes since last snapshot */}
-        {diffVisible && diffItems.length > 0 && (
-          <ChangesSummary items={diffItems} snapshotAt={diffAt} onDismiss={() => setDiffVisible(false)} />
         )}
 
         {/* Mobile column tabs — hidden on desktop via CSS */}
@@ -1199,11 +1193,11 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  diffBanner:    { margin: '0 12px 8px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' },
-  diffHeader:    { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fafafa', borderBottom: '1px solid #f3f4f6' },
-  diffDismiss:   { background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#9ca3af', lineHeight: 1, padding: '0 2px', marginLeft: 4 },
-  diffList:      { listStyle: 'none', margin: 0, padding: '6px 12px 8px', display: 'flex', flexDirection: 'column', gap: 5 },
-  diffItem:      { display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 11, color: '#374151', lineHeight: 1.5 },
+  ticker:        { display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, maxWidth: 340, height: 28, overflow: 'hidden', borderRadius: 6, border: '1px solid #f0f0f0', background: '#fafafa', margin: '0 8px' },
+  tickerTrack:   { flex: 1, overflow: 'hidden', height: '100%', display: 'flex', alignItems: 'center', maskImage: 'linear-gradient(to right, transparent, #000 18%, #000 82%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 18%, #000 82%, transparent)' },
+  tickerContent: { display: 'inline-flex', alignItems: 'center', animation: 'ticker-scroll linear infinite', whiteSpace: 'nowrap' },
+  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 40, whiteSpace: 'nowrap' },
+  tickerDismiss: { flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#c4c9d4', padding: '0 8px', alignSelf: 'stretch', display: 'flex', alignItems: 'center', borderLeft: '1px solid #f0f0f0' },
   th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
   td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
