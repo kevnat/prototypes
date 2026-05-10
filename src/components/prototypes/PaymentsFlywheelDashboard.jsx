@@ -38,6 +38,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Marquee from 'react-fast-marquee';
 import { useNavigate } from 'react-router-dom';
 import { useFlywheelBoard } from '../../hooks/useFlywheelBoard.js';
 import { supabase } from '../../lib/supabaseClient.js';
@@ -632,38 +633,19 @@ function formatDiffItem(item) {
 }
 
 function DiffTicker({ items }) {
-  const wrapRef    = useRef(null);
-  const contentRef = useRef(null);
-  const [kf,  setKf]  = useState('');
-  const [dur, setDur] = useState(0);
-
-  useEffect(() => {
-    const wrap    = wrapRef.current;
-    const content = contentRef.current;
-    if (!wrap || !content) return;
-    const cw = wrap.clientWidth;
-    const tw = content.scrollWidth;
-    // Travel: enters from right edge of container, exits fully off the left
-    setKf(`@keyframes pfr-ticker{from{transform:translateX(${cw}px)}to{transform:translateX(-${tw}px)}}`);
-    setDur((cw + tw) / 80); // 80 px/s
-  }, [items]);
-
   return (
-    <>
-      {kf && <style>{kf}</style>}
-      <div ref={wrapRef} style={s.tickerWrap}>
-        <div ref={contentRef} style={{ ...s.tickerContent, ...(dur && { animation: `pfr-ticker ${dur}s linear infinite` }) }}>
-          {items.map((item, i) => (
-            <span key={i} style={s.tickerItem}>
-              <span style={{ color: DIFF_COLORS[item.type], fontWeight: 800, marginRight: 4 }}>
-                {DIFF_ICONS[item.type]}
-              </span>
-              {formatDiffItem(item)}
+    <div style={s.tickerWrap}>
+      <Marquee speed={40} gradient gradientColor="#f5f0e8" gradientWidth={40} pauseOnHover>
+        {items.map((item, i) => (
+          <span key={i} style={s.tickerItem}>
+            <span style={{ color: DIFF_COLORS[item.type], fontWeight: 800, marginRight: 4 }}>
+              {DIFF_ICONS[item.type]}
             </span>
-          ))}
-        </div>
-      </div>
-    </>
+            {formatDiffItem(item)}
+          </span>
+        ))}
+      </Marquee>
+    </div>
   );
 }
 
@@ -691,6 +673,7 @@ export default function PaymentsFlywheelDashboard() {
   const [diffItems,           setDiffItems]           = useState([]);
   const [diffVisible,         setDiffVisible]         = useState(false);
   const [diffChecked,         setDiffChecked]         = useState(false);
+  const [tickerMode,          setTickerMode]          = useState('live'); // 'live' | 'testing'
   const [diffAt,              setDiffAt]              = useState(null);
   const boardRef    = useRef(null);
   const [activeColIdx, setActiveColIdx] = useState(0);
@@ -820,6 +803,24 @@ export default function PaymentsFlywheelDashboard() {
           if (realChanges.length > 0) { setDiffItems(realChanges); setDiffVisible(true); }
         }
 
+        // Stub items for ticker-testing mode (built from live epic data)
+        if (tickerMode === 'testing' && allEpics.length >= 3) {
+          const [e0, e1, e2] = allEpics;
+          const snap0 = newSnapEpics[e0.key];
+          const snap1 = newSnapEpics[e1.key];
+          const cols  = COLS.filter(c => c !== 'upnext');
+          const stubItems = [
+            { type: 'moved',      key: e0.key, summary: snap0?.summary || e0.fields.summary.slice(0, 60),
+              from: cols[(cols.indexOf(snap0?.col ?? 'indev') + 1) % cols.length], to: snap0?.col ?? 'indev', doneDelta: 0 },
+            { type: 'progressed', key: e1.key, summary: snap1?.summary || e1.fields.summary.slice(0, 60),
+              doneDelta: 2, doneNow: (snap1?.done ?? 0) + 2, totalNow: snap1?.total ?? 10 },
+            { type: 'appeared',   key: e2.key, summary: newSnapEpics[e2.key]?.summary || e2.fields.summary.slice(0, 60),
+              to: newSnapEpics[e2.key]?.col ?? 'starting' },
+          ];
+          setDiffItems(stubItems);
+          setDiffVisible(true);
+        }
+
         // Upsert new snapshot (non-blocking — if this fails, old snapshot is preserved)
         await supabase
           .from('flywheel_board_state')
@@ -830,7 +831,7 @@ export default function PaymentsFlywheelDashboard() {
         console.warn('Snapshot diff failed:', err);
       }
     })();
-  }, [boardLoaded, loading, diffChecked, allEpics, childMap]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [boardLoaded, loading, diffChecked, allEpics, childMap, tickerMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived state ──────────────────────────────────────────────────────────
   function getCol(epic) {
@@ -1037,6 +1038,13 @@ export default function PaymentsFlywheelDashboard() {
               <button onClick={resetOverrides} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
             )}
             <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
+            <button
+              onClick={() => { setTickerMode(m => m === 'live' ? 'testing' : 'live'); setDiffChecked(false); setDiffItems([]); setDiffVisible(false); }}
+              style={{ ...s.btn, ...(tickerMode === 'testing' ? s.btnActive : {}) }}
+              title="Toggle ticker between live diffs and stub test data"
+            >
+              {tickerMode === 'testing' ? '🧪 ticker' : '📡 ticker'}
+            </button>
             <button onClick={() => setShowAllNotes(o => !o)} style={{ ...s.btn, ...(showAllNotes ? s.btnActive : {}) }}>
               {showAllNotes ? 'Hide notes' : 'Show notes'}
             </button>
@@ -1161,7 +1169,7 @@ const s = {
 
   backBtn:       { fontSize: 14, lineHeight: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280' },
   btn:           { fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' },
-  btnActive:     { background: '#eef2f1', borderColor: '#95ada3', color: '#3d6b63' },
+  btnActive:     { background: '#eef2f1', border: '1px solid #95ada3', color: '#3d6b63' },
   btnDanger:     { borderColor: '#fca5a5', color: '#b91c1c' },
 
   board:         { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, padding: 12, alignItems: 'start' },
@@ -1198,9 +1206,8 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#481f1f', color: '#f7e9e7', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(72,31,31,0.3)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #d5c9bb', background: '#f3ece0', color: '#7a5522', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #929557', background: '#eaebda', color: '#4a4c1f', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
-  tickerWrap:    { height: 28, margin: '0 12px 4px', overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)' },
-  tickerContent: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', height: '100%' },
-  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 32, whiteSpace: 'nowrap' },
+  tickerWrap:    { margin: '0 12px 4px' },
+  tickerItem:    { fontSize: 10, color: '#374151', marginRight: 40, whiteSpace: 'nowrap' },
   th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
   td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
