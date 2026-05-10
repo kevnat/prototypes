@@ -565,7 +565,7 @@ function MobileColTabs({ cols, activeIdx, onSelect }) {
 }
 
 // ── Snapshot diff ─────────────────────────────────────────────────────────────
-function computeDiff(snapshot, liveEpics, liveChildMap, getColFn) {
+function computeDiff(snapshot, liveEpics, liveChildMap, getColFn, overrides = {}) {
   const snapEpics = snapshot?.epics ?? {};
   const liveKeys  = new Set(liveEpics.map(e => e.key));
   const changes   = [];
@@ -589,7 +589,7 @@ function computeDiff(snapshot, liveEpics, liveChildMap, getColFn) {
     const liveDone  = scoped.filter(c => DONE.has(c.status.toLowerCase())).length;
     const liveTotal = scoped.length;
     const delta     = liveDone - snap.done;
-    if (liveCol !== snap.col)
+    if (liveCol !== snap.col && !overrides[key])
       changes.push({ type: 'moved', key, summary: snap.summary,
                      from: snap.col, to: liveCol,
                      doneDelta: delta, doneNow: liveDone, totalNow: liveTotal });
@@ -796,7 +796,7 @@ export default function PaymentsFlywheelDashboard() {
         let realChanges = [];
         if (oldSnap) {
           setDiffAt(oldSnap.at ?? null);
-          realChanges = computeDiff(oldSnap, allEpics, childMap, getCol);
+          realChanges = computeDiff(oldSnap, allEpics, childMap, getCol, overrides);
           if (realChanges.length > 0) { setDiffItems(realChanges); setDiffVisible(true); }
         }
 
