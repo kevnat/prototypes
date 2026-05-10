@@ -40,6 +40,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFlywheelBoard } from '../../hooks/useFlywheelBoard.js';
+import { supabase } from '../../lib/supabaseClient.js';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const JIRA_BASE_URL  = '/api/jira';
@@ -562,6 +563,89 @@ function MobileColTabs({ cols, activeIdx, onSelect }) {
   );
 }
 
+// ── Snapshot diff ─────────────────────────────────────────────────────────────
+function computeDiff(snapshot, liveEpics, liveChildMap, getColFn) {
+  const snapEpics = snapshot?.epics ?? {};
+  const liveKeys  = new Set(liveEpics.map(e => e.key));
+  const changes   = [];
+
+  liveEpics.forEach(epic => {
+    if (!snapEpics[epic.key])
+      changes.push({ type: 'appeared', key: epic.key,
+                     summary: epic.fields.summary.slice(0, 60),
+                     to: getColFn(epic) });
+  });
+
+  Object.entries(snapEpics).forEach(([key, snap]) => {
+    if (!liveKeys.has(key)) {
+      changes.push({ type: 'completed', key, summary: snap.summary });
+      return;
+    }
+    const epic      = liveEpics.find(e => e.key === key);
+    const liveCol   = getColFn(epic);
+    const children  = liveChildMap[key] ?? [];
+    const scoped    = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
+    const liveDone  = scoped.filter(c => DONE.has(c.status.toLowerCase())).length;
+    const liveTotal = scoped.length;
+    const delta     = liveDone - snap.done;
+    if (liveCol !== snap.col)
+      changes.push({ type: 'moved', key, summary: snap.summary,
+                     from: snap.col, to: liveCol,
+                     doneDelta: delta, doneNow: liveDone, totalNow: liveTotal });
+    else if (delta > 0)
+      changes.push({ type: 'progressed', key, summary: snap.summary,
+                     doneDelta: delta, doneNow: liveDone, totalNow: liveTotal });
+  });
+
+  return changes;
+}
+
+const DIFF_ICONS  = { moved: '→', progressed: '↑', appeared: '+', completed: '✓' };
+const DIFF_COLORS = { moved: '#2563eb', progressed: '#059669', appeared: '#7c3aed', completed: '#9ca3af' };
+
+function formatDiffItem(item) {
+  const label = item.summary || item.key;
+  switch (item.type) {
+    case 'moved':
+      return `${label}: ${COL_DISPLAY[item.from] ?? item.from} → ${COL_DISPLAY[item.to] ?? item.to}` +
+             (item.doneDelta > 0 ? ` (+${item.doneDelta} done)` : '');
+    case 'progressed':
+      return `${label}: ${item.doneNow}/${item.totalNow} done (+${item.doneDelta})`;
+    case 'appeared':
+      return `${label} · appeared in ${COL_DISPLAY[item.to] ?? item.to}`;
+    case 'completed':
+      return `${label} · left the board`;
+    default: return label;
+  }
+}
+
+function ChangesSummary({ items, snapshotAt, onDismiss }) {
+  const ago = snapshotAt ? timeAgo(snapshotAt) : null;
+  return (
+    <div style={s.diffBanner}>
+      <div style={s.diffHeader}>
+        <span style={{ fontWeight: 700, fontSize: 11, color: '#111827' }}>
+          Changes since {ago ?? 'last load'}
+        </span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#6b7280' }}>
+          {items.length} update{items.length !== 1 ? 's' : ''}
+        </span>
+        <button onClick={onDismiss} style={s.diffDismiss}>✕</button>
+      </div>
+      <ul style={s.diffList}>
+        {items.map((item, i) => (
+          <li key={`${item.key}-${i}`} style={s.diffItem}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: DIFF_COLORS[item.type], minWidth: 14 }}>
+              {DIFF_ICONS[item.type]}
+            </span>
+            {formatDiffItem(item)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // ── Main dashboard ────────────────────────────────────────────────────────────
 const COLS = ['upnext', 'starting', 'indev', 'intest', 'almostdone'];
 
@@ -583,12 +667,16 @@ export default function PaymentsFlywheelDashboard() {
   const [lockAlert,           setLockAlert]           = useState(false);
   const [showAllNotes,        setShowAllNotes]        = useState(false);
   const [roadmapOnly,         setRoadmapOnly]         = useState(false);
+  const [diffItems,           setDiffItems]           = useState([]);
+  const [diffVisible,         setDiffVisible]         = useState(false);
+  const [diffChecked,         setDiffChecked]         = useState(false);
+  const [diffAt,              setDiffAt]              = useState(null);
   const boardRef    = useRef(null);
   const [activeColIdx, setActiveColIdx] = useState(0);
 
   // ── Jira load ──────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
-    setLoading(true); setError(null); setMeta('Loading…');
+    setLoading(true); setDiffChecked(false); setError(null); setMeta('Loading…');
     try {
       const epicRes = await jiraSearch({
         jql: `project = "${PROJECT}" AND issuetype = Epic AND status in ("In Progress","Open") ORDER BY updated DESC`,
@@ -670,6 +758,57 @@ export default function PaymentsFlywheelDashboard() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // ── Snapshot diff — runs async after board renders, never blocks UI ────────
+  useEffect(() => {
+    if (!boardLoaded || loading || diffChecked) return;
+    if (allEpics.length === 0) return;
+    setDiffChecked(true);
+
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('flywheel_board_state')
+          .select('value')
+          .eq('key', 'pfr_snapshot')
+          .maybeSingle();
+        if (error) throw error;
+
+        const oldSnap = data?.value ?? null;
+
+        // Build current snapshot
+        const newSnapEpics = {};
+        allEpics.forEach(epic => {
+          const children = childMap[epic.key] ?? [];
+          const scoped   = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
+          const done     = scoped.filter(c => DONE.has(c.status.toLowerCase())).length;
+          newSnapEpics[epic.key] = {
+            col:     getCol(epic),
+            done,
+            total:   scoped.length,
+            summary: epic.fields.summary.slice(0, 60),
+          };
+        });
+        const newSnap = { at: new Date().toISOString(), epics: newSnapEpics };
+
+        // Diff and surface changes
+        if (oldSnap) {
+          setDiffAt(oldSnap.at ?? null);
+          const changes = computeDiff(oldSnap, allEpics, childMap, getCol);
+          if (changes.length > 0) { setDiffItems(changes); setDiffVisible(true); }
+        }
+
+        // Upsert new snapshot (non-blocking — if this fails, old snapshot is preserved)
+        await supabase
+          .from('flywheel_board_state')
+          .upsert({ key: 'pfr_snapshot', value: newSnap, updated_at: new Date().toISOString() },
+                  { onConflict: 'key' });
+
+      } catch (err) {
+        console.warn('Snapshot diff failed:', err);
+      }
+    })();
+  }, [boardLoaded, loading, diffChecked, allEpics, childMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived state ──────────────────────────────────────────────────────────
   function getCol(epic) {
@@ -890,6 +1029,11 @@ export default function PaymentsFlywheelDashboard() {
             onRestore={isEditMode ? restoreCard : null} onClose={() => setTrayOpen(false)} />
         )}
 
+        {/* Changes since last snapshot */}
+        {diffVisible && diffItems.length > 0 && (
+          <ChangesSummary items={diffItems} snapshotAt={diffAt} onDismiss={() => setDiffVisible(false)} />
+        )}
+
         {/* Mobile column tabs — hidden on desktop via CSS */}
         <MobileColTabs cols={COLS} activeIdx={activeColIdx} onSelect={scrollToCol} />
 
@@ -1027,6 +1171,11 @@ const s = {
   lockToast:     { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', color: 'white', fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 8, zIndex: 300, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
   lockedBadge:   { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
   editingBadge:  { fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: '1px solid #bbf7d0', background: '#dcfce7', color: '#15803d', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.2px' },
+  diffBanner:    { margin: '0 12px 8px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' },
+  diffHeader:    { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fafafa', borderBottom: '1px solid #f3f4f6' },
+  diffDismiss:   { background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#9ca3af', lineHeight: 1, padding: '0 2px', marginLeft: 4 },
+  diffList:      { listStyle: 'none', margin: 0, padding: '6px 12px 8px', display: 'flex', flexDirection: 'column', gap: 5 },
+  diffItem:      { display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 11, color: '#374151', lineHeight: 1.5 },
   th:            { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' },
   td:            { padding: '8px 12px', verticalAlign: 'middle' },
   modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
