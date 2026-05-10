@@ -269,11 +269,6 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
             </a>
           )}
         </div>
-        {name && (
-          <span className="pfr-avatar" style={{ ...s.avatar, background: avatarColor(name) }} title={name}>
-            {initials(name)}
-          </span>
-        )}
         {onHide && (
           <button onClick={() => onHide(key)} title="Hide" style={s.hideBtn}>×</button>
         )}
@@ -587,6 +582,7 @@ export default function PaymentsFlywheelDashboard() {
   const [unlockError,         setUnlockError]         = useState(null);
   const [lockAlert,           setLockAlert]           = useState(false);
   const [showAllNotes,        setShowAllNotes]        = useState(false);
+  const [roadmapOnly,         setRoadmapOnly]         = useState(false);
   const boardRef    = useRef(null);
   const [activeColIdx, setActiveColIdx] = useState(0);
 
@@ -698,6 +694,7 @@ export default function PaymentsFlywheelDashboard() {
   const visible = allEpics.filter(e => {
     if (hidden.includes(e.key)) return false;
     if (!showTD && (e.fields.labels || []).includes('pay-tech-debt')) return false;
+    if (roadmapOnly && !rdmpMap[e.key]) return false;
     return true;
   });
 
@@ -862,6 +859,9 @@ export default function PaymentsFlywheelDashboard() {
             <span style={s.meta}>{meta}</span>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
               {showTD ? 'Hide tech debt' : 'Show tech debt'}
+            </button>
+            <button onClick={() => setRoadmapOnly(o => !o)} style={{ ...s.btn, ...(roadmapOnly ? s.btnActive : {}) }}>
+              {roadmapOnly ? 'All epics' : 'Only roadmap'}
             </button>
             {hidden.length > 0 && (
               <button onClick={() => setTrayOpen(o => !o)} style={s.btn}>
