@@ -873,6 +873,7 @@ export default function PaymentsFlywheelDashboard() {
   // ── Derived state ──────────────────────────────────────────────────────────
   function getCol(epic) {
     if (overrides[epic.key]) return overrides[epic.key];
+    if (epic.fields.status.name === 'Open') return 'upnext';
     const children = childMap[epic.key];
     if (children && children.length > 0) return categorise(children);
     const labels = epic.fields.labels || [];
@@ -898,10 +899,9 @@ export default function PaymentsFlywheelDashboard() {
   });
 
   const buckets = { upnext: [], starting: [], indev: [], intest: [], almostdone: [] };
-  visible.filter(e => e.fields.status.name === 'Open').forEach(e => buckets.upnext.push(e));
-  visible.filter(e => e.fields.status.name === 'In Progress').forEach(e => {
+  visible.forEach(e => {
     const col = getCol(e);
-    (buckets[col] || buckets['indev']).push(e);
+    (buckets[col] || buckets['upnext']).push(e);
   });
 
   // Build diffMap: epicKey → full diff item (for card footer note)
