@@ -1119,7 +1119,7 @@ export default function PaymentsFlywheelDashboard() {
         {/* Loading overlay — wait for both Supabase state and full Jira fetch (incl. child tickets) */}
         {(!boardLoaded || loading) && (
           <div style={{ padding: '30px 20px', textAlign: 'center', fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Spinner /> {!boardLoaded ? 'Loading board state…' : 'Fetching epics and child tickets…'}
+            <Spinner /> {!boardLoaded ? 'Loading board state…' : 'Fetching data from Jira…'}
           </div>
         )}
 
