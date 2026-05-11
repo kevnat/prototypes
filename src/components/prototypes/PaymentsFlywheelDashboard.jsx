@@ -1064,10 +1064,10 @@ export default function PaymentsFlywheelDashboard() {
           {/* Visibility controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f0ede8', border: '1px solid #e0dbd2', borderRadius: 8, padding: '3px 6px', flexWrap: 'wrap' }}>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
-              {showTD ? 'Hide tech debt' : 'Tech debt'}
+              Tech debt
             </button>
             <button onClick={() => setRoadmapOnly(o => !o)} style={{ ...s.btn, ...(roadmapOnly ? s.btnActive : {}) }}>
-              {roadmapOnly ? 'All epics' : 'Roadmap only'}
+              Roadmap only
             </button>
             {hidden.length > 0 && (
               <button onClick={() => setTrayOpen(o => !o)} style={{ ...s.btn, ...(trayOpen ? s.btnActive : {}) }}>
