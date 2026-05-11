@@ -790,6 +790,18 @@ export default function PaymentsFlywheelDashboard() {
 
         const oldSnap = data?.value ?? null;
 
+        console.group('[PFR] Snapshot poll');
+        if (oldSnap) {
+          console.log('📦 Stored snapshot (from %s)', new Date(oldSnap.at).toLocaleString());
+          console.table(
+            Object.entries(oldSnap.epics).map(([key, e]) =>
+              ({ key, summary: e.summary, col: e.col, done: e.done, active: e.active ?? '—', total: e.total })
+            )
+          );
+        } else {
+          console.log('📭 No stored snapshot — this is the first load');
+        }
+
         // Build current snapshot
         const newSnapEpics = {};
         allEpics.forEach(epic => {
@@ -807,13 +819,26 @@ export default function PaymentsFlywheelDashboard() {
         });
         const newSnap = { at: new Date().toISOString(), epics: newSnapEpics };
 
+        console.log('🔄 Live snapshot (now)');
+        console.table(
+          Object.entries(newSnapEpics).map(([key, e]) =>
+            ({ key, summary: e.summary, col: e.col, done: e.done, active: e.active, total: e.total })
+          )
+        );
+
         // Diff and surface changes
         let realChanges = [];
         if (oldSnap) {
           setDiffAt(oldSnap.at ?? null);
           realChanges = computeDiff(oldSnap, allEpics, childMap, getCol, overrides);
-          if (realChanges.length > 0) { setDiffItems(realChanges); setDiffVisible(true); }
+          if (realChanges.length > 0) {
+            console.log('✅ Changes detected (%d):', realChanges.length, realChanges);
+            setDiffItems(realChanges); setDiffVisible(true);
+          } else {
+            console.log('💤 No changes since last snapshot');
+          }
         }
+        console.groupEnd();
 
         // Stub items for ticker-testing mode (built from live epic data)
         if (tickerMode === 'testing' && allEpics.length >= 3) {
