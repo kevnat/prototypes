@@ -63,6 +63,8 @@ const EARLY = new Set([
   'open','backlog','to do','todo','estimate','dev ready','ready for dev',
   'selected for development','ready','planned','new','defined','scoping',
 ]);
+// Truly dormant — tickets not yet touched by anyone
+const DORMANT = new Set(['open','backlog','to do','todo','new','planned','defined']);
 const DONE = new Set([
   'done','closed','resolved','released','accepted','complete',
   'ready for release','deployed','verified',
@@ -249,6 +251,7 @@ function diffNote(item) {
   switch (item.type) {
     case 'moved':      return `→ ${COL_DISPLAY[item.to] ?? item.to}`;
     case 'progressed': return `↑ +${item.doneDelta} done`;
+    case 'activated':  return `▶ ${item.activeDelta} picked up`;
     case 'appeared':   return '+ new this cycle';
     default: return null;
   }
@@ -594,27 +597,32 @@ function computeDiff(snapshot, liveEpics, liveChildMap, getColFn, overrides = {}
       changes.push({ type: 'completed', key, summary: snap.summary });
       return;
     }
-    const epic      = liveEpics.find(e => e.key === key);
-    const liveCol   = getColFn(epic);
-    const children  = liveChildMap[key] ?? [];
-    const scoped    = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
-    const liveDone  = scoped.filter(c => DONE.has(c.status.toLowerCase())).length;
-    const liveTotal = scoped.length;
-    const delta     = liveDone - snap.done;
+    const epic        = liveEpics.find(e => e.key === key);
+    const liveCol     = getColFn(epic);
+    const children    = liveChildMap[key] ?? [];
+    const scoped      = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
+    const liveDone    = scoped.filter(c => DONE.has(c.status.toLowerCase())).length;
+    const liveActive  = scoped.filter(c => !DONE.has(c.status.toLowerCase()) && !DORMANT.has(c.status.toLowerCase())).length;
+    const liveTotal   = scoped.length;
+    const doneDelta   = liveDone  - (snap.done   ?? 0);
+    const activeDelta = liveActive - (snap.active ?? 0);
     if (liveCol !== snap.col && !overrides[key])
       changes.push({ type: 'moved', key, summary: snap.summary,
                      from: snap.col, to: liveCol,
-                     doneDelta: delta, doneNow: liveDone, totalNow: liveTotal });
-    else if (delta > 0)
+                     doneDelta, doneNow: liveDone, totalNow: liveTotal });
+    else if (doneDelta > 0)
       changes.push({ type: 'progressed', key, summary: snap.summary,
-                     doneDelta: delta, doneNow: liveDone, totalNow: liveTotal });
+                     doneDelta, doneNow: liveDone, totalNow: liveTotal });
+    else if (activeDelta > 0)
+      changes.push({ type: 'activated', key, summary: snap.summary,
+                     activeDelta, activeNow: liveActive, totalNow: liveTotal });
   });
 
   return changes;
 }
 
-const DIFF_ICONS  = { moved: '→', progressed: '↑', appeared: '+', completed: '✓' };
-const DIFF_COLORS = { moved: '#95ada3', progressed: '#61642b', appeared: '#936a2f', completed: '#b49c84' };
+const DIFF_ICONS  = { moved: '→', progressed: '↑', activated: '▶', appeared: '+', completed: '✓' };
+const DIFF_COLORS = { moved: '#95ada3', progressed: '#61642b', activated: '#936a2f', appeared: '#7c6f5a', completed: '#b49c84' };
 
 function formatDiffItem(item) {
   const label = item.summary || item.key;
@@ -624,6 +632,8 @@ function formatDiffItem(item) {
              (item.doneDelta > 0 ? ` (+${item.doneDelta} done)` : '');
     case 'progressed':
       return `${label}: ${item.doneNow}/${item.totalNow} done (+${item.doneDelta})`;
+    case 'activated':
+      return `${label}: ${item.activeDelta} ticket${item.activeDelta !== 1 ? 's' : ''} picked up`;
     case 'appeared':
       return `${label} · queued up next`;
     case 'completed':
@@ -786,9 +796,11 @@ export default function PaymentsFlywheelDashboard() {
           const children = childMap[epic.key] ?? [];
           const scoped   = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
           const done     = scoped.filter(c => DONE.has(c.status.toLowerCase())).length;
+          const active   = scoped.filter(c => !DONE.has(c.status.toLowerCase()) && !DORMANT.has(c.status.toLowerCase())).length;
           newSnapEpics[epic.key] = {
             col:     getCol(epic),
             done,
+            active,
             total:   scoped.length,
             summary: epic.fields.summary.slice(0, 60),
           };
