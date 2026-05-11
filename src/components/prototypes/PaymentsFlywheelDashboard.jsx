@@ -683,7 +683,7 @@ export default function PaymentsFlywheelDashboard() {
   const [diffItems,           setDiffItems]           = useState([]);
   const [diffVisible,         setDiffVisible]         = useState(false);
   const [diffChecked,         setDiffChecked]         = useState(false);
-  const [tickerMode,          setTickerMode]          = useState('live'); // 'live' | 'testing'
+  const [tickerMode,          setTickerMode]          = useState('testing'); // 'live' | 'testing'
   const [diffAt,              setDiffAt]              = useState(null);
   const boardRef    = useRef(null);
   const [activeColIdx, setActiveColIdx] = useState(0);
@@ -1075,15 +1075,15 @@ export default function PaymentsFlywheelDashboard() {
               <button onClick={resetOverrides} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
             )}
             <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
+            <button onClick={() => setShowAllNotes(o => !o)} style={{ ...s.btn, ...(showAllNotes ? s.btnActive : {}) }}>
+              {showAllNotes ? 'Hide notes' : 'Show notes'}
+            </button>
             <button
               onClick={() => { setTickerMode(m => m === 'live' ? 'testing' : 'live'); setDiffChecked(false); setDiffItems([]); setDiffVisible(false); }}
               style={{ ...s.btn, ...(tickerMode === 'testing' ? s.btnActive : {}) }}
               title="Toggle ticker between live diffs and stub test data"
             >
-              {tickerMode === 'testing' ? '🧪 ticker' : '📡 ticker'}
-            </button>
-            <button onClick={() => setShowAllNotes(o => !o)} style={{ ...s.btn, ...(showAllNotes ? s.btnActive : {}) }}>
-              {showAllNotes ? 'Hide notes' : 'Show notes'}
+              📡 Ticker
             </button>
             {isEditMode
               ? <button onClick={exitEditMode} style={s.editingBadge} title="Click to lock">🔓 Editing</button>
