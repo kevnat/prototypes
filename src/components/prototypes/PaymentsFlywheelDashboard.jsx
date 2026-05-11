@@ -218,10 +218,9 @@ function GroomingChecklist({ epicKey, checks, onToggle }) {
 }
 
 // ── Progress summary (ticket counts, excluding cancelled) ─────────────────────
-function ProgressSummary({ children }) {
+function ProgressSummary({ children, lead }) {
   if (!children || children.length === 0) return null;
 
-  // Denominator excludes cancelled tickets
   const scoped    = children.filter(c => !CANCELLED.has(c.status.toLowerCase()));
   const completed = scoped.filter(c => DONE.has(c.status.toLowerCase()));
   const active    = scoped.filter(c => !DONE.has(c.status.toLowerCase()) && !EARLY.has(c.status.toLowerCase()));
@@ -235,8 +234,13 @@ function ProgressSummary({ children }) {
 
   return (
     <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f3f4f6' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#111827', marginBottom: 3 }}>
-        {completed.length} / {scoped.length} done
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#111827' }}>
+          {completed.length} / {scoped.length} done
+        </span>
+        {lead && (
+          <span style={{ fontSize: 9, color: '#9ca3af' }}>Lead: {lead}</span>
+        )}
       </div>
       {breakdown && (
         <div style={{ fontSize: 9, color: '#6b7280', lineHeight: 1.6 }}>{breakdown}</div>
@@ -336,7 +340,7 @@ function EpicCard({ issue, childData = null, showGroom = false, movedFrom = null
           )}
         </div>
       )}
-      {childData !== null && <ProgressSummary children={childData} />}
+      {childData !== null && <ProgressSummary children={childData} lead={name} />}
       {showGroom && (
         <GroomingChecklist
           epicKey={key}
