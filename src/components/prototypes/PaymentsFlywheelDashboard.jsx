@@ -674,7 +674,8 @@ export default function PaymentsFlywheelDashboard() {
   const [meta,       setMeta]       = useState('Loading…');
   const [error,      setError]      = useState(null);
   const [dragKey,    setDragKey]    = useState(null);
-  const [showPassphraseModal, setShowPassphraseModal] = useState(false);
+  const [showPassphraseModal,   setShowPassphraseModal]   = useState(false);
+  const [showResetConfirm,      setShowResetConfirm]      = useState(false);
   const [passphraseInput,     setPassphraseInput]     = useState('');
   const [unlockError,         setUnlockError]         = useState(null);
   const [lockAlert,           setLockAlert]           = useState(false);
@@ -983,9 +984,9 @@ export default function PaymentsFlywheelDashboard() {
   }
 
   function resetOverrides() {
-    if (!window.confirm('Clear all manual column placements?')) return;
     setOverrides({});
     setRanks({});
+    setShowResetConfirm(false);
   }
 
   function toggleTD() {
@@ -1054,29 +1055,27 @@ export default function PaymentsFlywheelDashboard() {
 
         {/* Header */}
         <div style={s.header}>
+          {/* Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button onClick={() => navigate('/home')} style={s.backBtn}>←</button>
             <span style={s.h1}>Payments Epic Board</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
-            <span style={s.meta}>{meta}</span>
+
+          {/* Visibility controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f0ede8', border: '1px solid #e0dbd2', borderRadius: 8, padding: '3px 6px', flexWrap: 'wrap' }}>
             <button onClick={toggleTD} style={{ ...s.btn, ...(showTD ? s.btnActive : {}) }}>
-              {showTD ? 'Hide tech debt' : 'Show tech debt'}
+              {showTD ? 'Hide tech debt' : 'Tech debt'}
             </button>
             <button onClick={() => setRoadmapOnly(o => !o)} style={{ ...s.btn, ...(roadmapOnly ? s.btnActive : {}) }}>
-              {roadmapOnly ? 'All epics' : 'Only roadmap'}
+              {roadmapOnly ? 'All epics' : 'Roadmap only'}
             </button>
             {hidden.length > 0 && (
-              <button onClick={() => setTrayOpen(o => !o)} style={s.btn}>
-                {trayOpen ? 'Hide' : 'Show'} hidden ({hidden.length})
+              <button onClick={() => setTrayOpen(o => !o)} style={{ ...s.btn, ...(trayOpen ? s.btnActive : {}) }}>
+                Hidden ({hidden.length})
               </button>
             )}
-            {isEditMode && (
-              <button onClick={resetOverrides} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
-            )}
-            <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
             <button onClick={() => setShowAllNotes(o => !o)} style={{ ...s.btn, ...(showAllNotes ? s.btnActive : {}) }}>
-              {showAllNotes ? 'Hide notes' : 'Show notes'}
+              Notes
             </button>
             <button
               onClick={() => { setTickerMode(m => m === 'live' ? 'testing' : 'live'); setDiffChecked(false); setDiffItems([]); setDiffVisible(false); }}
@@ -1085,6 +1084,15 @@ export default function PaymentsFlywheelDashboard() {
             >
               📡 Ticker
             </button>
+          </div>
+
+          {/* Actions + lock */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={s.meta}>{meta}</span>
+            {isEditMode && (
+              <button onClick={() => setShowResetConfirm(true)} style={{ ...s.btn, ...s.btnDanger }}>Reset overrides</button>
+            )}
+            <button onClick={load} style={s.btn} disabled={loading}>↻ Refresh</button>
             {isEditMode
               ? <button onClick={exitEditMode} style={s.editingBadge} title="Click to lock">🔓 Editing</button>
               : <button onClick={openPassphraseModal} style={s.lockedBadge} title="Click to unlock">🔒 Locked</button>
@@ -1112,6 +1120,22 @@ export default function PaymentsFlywheelDashboard() {
         {(!boardLoaded || loading) && (
           <div style={{ padding: '30px 20px', textAlign: 'center', fontSize: 13, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <Spinner /> {!boardLoaded ? 'Loading board state…' : 'Fetching epics and child tickets…'}
+          </div>
+        )}
+
+        {/* Reset overrides confirm modal */}
+        {showResetConfirm && (
+          <div style={s.modalOverlay} onClick={() => setShowResetConfirm(false)}>
+            <div style={s.modal} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6 }}>Reset all overrides?</div>
+              <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 16, lineHeight: 1.5 }}>
+                This will clear every manual column placement and card ordering. Cards will return to their Jira-derived positions. This cannot be undone.
+              </div>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowResetConfirm(false)} style={s.btn}>Cancel</button>
+                <button onClick={resetOverrides} style={{ ...s.btn, background: '#b91c1c', color: 'white', border: '1px solid #b91c1c' }}>Yes, reset everything</button>
+              </div>
+            </div>
           </div>
         )}
 
