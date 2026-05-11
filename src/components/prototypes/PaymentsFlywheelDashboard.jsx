@@ -1233,7 +1233,7 @@ const s = {
   btnActive:     { background: '#eef2f1', border: '1px solid #95ada3', color: '#3d6b63' },
   btnDanger:     { borderColor: '#fca5a5', color: '#b91c1c' },
 
-  board:         { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, padding: 12, alignItems: 'start' },
+  board:         { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10, padding: 12, alignItems: 'start' },
   column:        { display: 'flex', flexDirection: 'column', gap: 6 },
   colHeader:     { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2, userSelect: 'none' },
   colCount:      { marginLeft: 'auto', fontSize: 9, background: 'rgba(0,0,0,0.08)', padding: '1px 6px', borderRadius: 8 },
