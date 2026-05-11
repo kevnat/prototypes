@@ -848,11 +848,11 @@ export default function PaymentsFlywheelDashboard() {
           const snap1 = newSnapEpics[e1.key];
           const cols  = COLS.filter(c => c !== 'upnext');
           const stubItems = [
-            { type: 'moved',      key: e0.key, summary: snap0?.summary || e0.fields.summary.slice(0, 60),
+            { type: 'moved',    key: e0.key, summary: snap0?.summary || e0.fields.summary.slice(0, 60),
               from: cols[(cols.indexOf(snap0?.col ?? 'indev') + 1) % cols.length], to: snap0?.col ?? 'indev', doneDelta: 0 },
-            { type: 'progressed', key: e1.key, summary: snap1?.summary || e1.fields.summary.slice(0, 60),
-              doneDelta: 2, doneNow: (snap1?.done ?? 0) + 2, totalNow: snap1?.total ?? 10 },
-            { type: 'appeared',   key: e2.key, summary: newSnapEpics[e2.key]?.summary || e2.fields.summary.slice(0, 60),
+            { type: 'moved',    key: e1.key, summary: snap1?.summary || e1.fields.summary.slice(0, 60),
+              from: cols[(cols.indexOf(snap1?.col ?? 'starting') + 2) % cols.length], to: snap1?.col ?? 'starting', doneDelta: 0 },
+            { type: 'appeared', key: e2.key, summary: newSnapEpics[e2.key]?.summary || e2.fields.summary.slice(0, 60),
               to: newSnapEpics[e2.key]?.col ?? 'starting' },
           ];
           setDiffItems(stubItems);
