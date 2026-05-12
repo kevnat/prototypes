@@ -9,12 +9,6 @@ const sections = [
     thumbnail: '🔄',
     route: '/payments',
   },
-  {
-    title: 'Prototypes',
-    description: 'Product prototypes and design explorations',
-    thumbnail: '🧪',
-    route: '/prototypes',
-  },
 ];
 
 const HomeMenu = () => {

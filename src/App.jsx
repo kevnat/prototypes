@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomeMenu from './components/HomeMenu';
+import PrototypesGuard from './components/PrototypesGuard';
 import PrototypeMenu from './components/prototypes/PrototypeMenu';
 import PrototypeLayout from './components/prototypes/PrototypeLayout';
 import PaymentLinksPrototype from './components/prototypes/PaymentLinksPrototype';
@@ -22,35 +23,36 @@ function App() {
         <Route path="/" element={<HomeMenu />} />
         <Route path="/home" element={<HomeMenu />} />
 
-        {/* Prototype dashboard */}
-        <Route path="/prototypes" element={<PrototypeMenu />} />
-        
-        {/* Individual prototypes wrapped in layout */}
-        <Route path="/prototypes/payment-links" element={<PrototypeLayout />}>
-          <Route index element={<PaymentLinksPrototype />} />
+        {/* Protected prototype routes */}
+        <Route element={<PrototypesGuard />}>
+          <Route path="/studio" element={<PrototypeMenu />} />
+          <Route path="/prototypes/payment-links" element={<PrototypeLayout />}>
+            <Route index element={<PaymentLinksPrototype />} />
+          </Route>
+          <Route path="/prototypes/cash-app" element={<PrototypeLayout />}>
+            <Route index element={<CashAppPrototype />} />
+          </Route>
+          <Route path="/prototypes/lockbox" element={<PrototypeLayout />}>
+            <Route index element={<LockboxPrototype />} />
+          </Route>
+          <Route path="/prototypes/lockbox-validation" element={<PrototypeLayout />}>
+            <Route index element={<LockboxValidationScreen />} />
+          </Route>
+          <Route path="/prototypes/enhanced-lockbox" element={<PrototypeLayout />}>
+            <Route index element={<EnhancedLockboxPrototype />} />
+          </Route>
+          <Route path="/prototypes/payments-ops" element={<PrototypeLayout />}>
+            <Route index element={<PaymentsOpsDashboard />} />
+          </Route>
+          <Route path="/prototypes/payments-aging" element={<PrototypeLayout />}>
+            <Route index element={<PaymentsAgingPrototype />} />
+          </Route>
+          <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
+            <Route index element={<ApiDocsPrototype />} />
+          </Route>
         </Route>
-        <Route path="/prototypes/cash-app" element={<PrototypeLayout />}>
-          <Route index element={<CashAppPrototype />} />
-        </Route>
-        <Route path="/prototypes/lockbox" element={<PrototypeLayout />}>
-          <Route index element={<LockboxPrototype />} />
-        </Route>
-        <Route path="/prototypes/lockbox-validation" element={<PrototypeLayout />}>
-          <Route index element={<LockboxValidationScreen />} />
-        </Route>
-        <Route path="/prototypes/enhanced-lockbox" element={<PrototypeLayout />}>
-          <Route index element={<EnhancedLockboxPrototype />} />
-        </Route>
-        <Route path="/prototypes/payments-ops" element={<PrototypeLayout />}>
-          <Route index element={<PaymentsOpsDashboard />} />
-        </Route>
-        <Route path="/prototypes/payments-aging" element={<PrototypeLayout />}>
-          <Route index element={<PaymentsAgingPrototype />} />
-        </Route>
+
         <Route path="/payments" element={<PaymentsFlywheelDashboard />} />
-        <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
-          <Route index element={<ApiDocsPrototype />} />
-        </Route>
 
         {/* Standalone docs route */}
         <Route path="/docs" element={<ApiDocsPrototype />} />
