@@ -144,7 +144,10 @@ export default function PaymentDetailPrototype() {
 
           {/* STORY PANEL */}
           <div className="story-panel">
-            <div className="story-panel-label">Changes</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="story-panel-label">Changes</div>
+              <div style={{ fontSize: 10, color: '#a07830', fontWeight: 400 }}>Click each to review</div>
+            </div>
             <div className="story-pills">
               {Object.entries(STORIES).map(([n, s]) => (
                 <div
