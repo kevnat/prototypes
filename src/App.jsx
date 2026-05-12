@@ -9,6 +9,7 @@ import CashAppPrototype from './components/prototypes/CashAppPrototype';
 import LockboxPrototype from './components/prototypes/LockboxPrototype';
 import LockboxValidationScreen from './components/prototypes/LockboxValidationScreen';
 import EnhancedLockboxPrototype from './components/prototypes/EnhancedLockboxPrototype';
+import PaymentDetailPrototype from './components/prototypes/PaymentDetailPrototype';
 import ApiDocsPrototype from './components/prototypes/ApiDocsPrototype';
 import PaymentsOpsDashboard from './components/prototypes/PaymentsOpsDashboard';
 import PaymentsAgingPrototype from './components/prototypes/PaymentsAgingPrototype';
@@ -46,6 +47,9 @@ function App() {
           </Route>
           <Route path="/prototypes/payments-aging" element={<PrototypeLayout />}>
             <Route index element={<PaymentsAgingPrototype />} />
+          </Route>
+          <Route path="/prototypes/payment-detail" element={<PrototypeLayout />}>
+            <Route index element={<PaymentDetailPrototype />} />
           </Route>
           <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
             <Route index element={<ApiDocsPrototype />} />
