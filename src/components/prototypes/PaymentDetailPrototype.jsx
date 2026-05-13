@@ -65,6 +65,7 @@ function computePosition(cardEl, targetEl) {
 }
 
 export default function PaymentDetailPrototype() {
+  const [showCurrent, setShowCurrent] = useState(false);
   const [activeStory, setActiveStory] = useState(null);
   const [overlayPos, setOverlayPos] = useState({ top: -9999, left: -9999 });
   const anchorRefs = useRef({});
@@ -159,7 +160,59 @@ export default function PaymentDetailPrototype() {
                 </div>
               ))}
             </div>
+            <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+              <button
+                onClick={() => setShowCurrent(v => !v)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: showCurrent ? '#172b4d' : '#fff',
+                  border: '1.5px solid #172b4d',
+                  borderRadius: 20, padding: '4px 12px 4px 8px',
+                  fontSize: 11.5, fontWeight: 600,
+                  color: showCurrent ? '#fff' : '#172b4d',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                <span style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  background: showCurrent ? '#fff' : '#172b4d', color: showCurrent ? '#172b4d' : '#fff',
+                  fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {showCurrent ? '▲' : '▼'}
+                </span>
+                Current screen
+              </button>
+            </div>
           </div>
+
+          {/* CURRENT SCREEN COMPARISON */}
+          {showCurrent && (
+            <div style={{
+              background: '#fff', border: '1.5px solid #172b4d', borderRadius: 6,
+              marginBottom: 16, overflow: 'hidden',
+              boxShadow: '0 2px 8px rgba(23,43,77,0.12)',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 14px', background: '#172b4d',
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                  Current screen
+                </span>
+                <button
+                  onClick={() => setShowCurrent(false)}
+                  style={{ background: 'none', border: 'none', color: '#8ba3c7', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '0 2px' }}
+                >×</button>
+              </div>
+              <div style={{ padding: '12px 14px' }}>
+                <img
+                  src="/images/current-payment-detail.png"
+                  alt="Current payment detail screen"
+                  style={{ width: '100%', borderRadius: 4, border: '1px solid #dfe1e6', display: 'block' }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* PAGE HEADER */}
           <div className="page-header">
