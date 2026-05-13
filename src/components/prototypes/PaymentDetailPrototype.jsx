@@ -521,31 +521,6 @@ export default function PaymentDetailPrototype() {
             </div>
           </div>
 
-          {/* REFUNDS */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-header-title">Refunds and Write Offs</div>
-              <div className="card-actions">
-                <button className="btn btn-default" style={{ fontSize: 11 }}>⬇ Export</button>
-                <button className="btn btn-icon">•••</button>
-              </div>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Refund Item ID</th>
-                    <th className="amount">Refund Amount</th>
-                    <th>Refund Type</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colSpan={4} className="empty-state">No results found</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
 
           {/* SYSTEM INFO */}
           <div className="card">
