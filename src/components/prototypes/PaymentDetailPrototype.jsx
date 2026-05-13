@@ -446,7 +446,7 @@ export default function PaymentDetailPrototype() {
                     <td className="mono">11/19/2025</td>
                     <td>Trade Debtors - 7100</td>
                     <td className="amount">—</td>
-                    <td className="amount positive">$19,170.99</td>
+                    <td className="amount positive">$20,000.00</td>
                     <td className="muted">—</td>
                     <td>Payments ID 749611</td>
                     <td className="mono">NZC-999-7100-</td>
@@ -455,7 +455,7 @@ export default function PaymentDetailPrototype() {
                   <tr className="gl-row">
                     <td className="mono">11/19/2025</td>
                     <td>Bank Account - NZC - 7011</td>
-                    <td className="amount">$19,170.99</td>
+                    <td className="amount">$20,000.00</td>
                     <td className="amount">—</td>
                     <td className="muted">—</td>
                     <td>Payments ID 749611</td>
