@@ -14,6 +14,7 @@ import ApiDocsPrototype from './components/prototypes/ApiDocsPrototype';
 import PaymentsOpsDashboard from './components/prototypes/PaymentsOpsDashboard';
 import PaymentsAgingPrototype from './components/prototypes/PaymentsAgingPrototype';
 import PaymentsFlywheelDashboard from './components/prototypes/PaymentsFlywheelDashboard';
+import LockboxWorkbenchPrototype from './components/prototypes/LockboxWorkbenchPrototype';
 // import AnalyticsDashboard from './components/prototypes/AnalyticsDashboard';
 
 function App() {
@@ -52,6 +53,9 @@ function App() {
         </Route>
         <Route path="/prototypes/payment-detail" element={<PrototypeLayout />}>
           <Route index element={<PaymentDetailPrototype />} />
+        </Route>
+        <Route path="/prototypes/lockbox-workbench" element={<PrototypeLayout />}>
+          <Route index element={<LockboxWorkbenchPrototype />} />
         </Route>
         <Route path="/prototypes/api-docs" element={<PrototypeLayout />}>
           <Route index element={<ApiDocsPrototype />} />
