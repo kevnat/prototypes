@@ -33,23 +33,38 @@ const RECORDS = [
 ];
 
 // Invoice allocations shown in the bottom table
+// Each record: invoice rows sum to alloc; row count = splits; unallocated row when payment > alloc
 const INVOICE_ALLOCS = {
+  // 796601: $490.96 payment · $445.00 alloc · 5 splits (4 invoices + $45.96 unallocated)
   '796601': [
-    { id: '838215', accountName: '281348', invoiceId: '1610211', closedDate: '16/02/2026 17:09:01 +13:00', dueAmount: 0.00,   paymentAmount: 100.00 },
-    { id: '838216', accountName: '72619',  invoiceId: '1606628', closedDate: '16/02/2026 16:09:01 +13:00', dueAmount: 145.00, paymentAmount: 0.00   },
-    { id: '838217', accountName: '281320', invoiceId: '1606575', closedDate: '21/01/2026 15:17:10 +13:00', dueAmount: 0.00,   paymentAmount: 100.00 },
-    { id: '838218', accountName: '281314', invoiceId: '1593338', closedDate: '02/01/2026 19:33:02 +13:00', dueAmount: 0.00,   paymentAmount: 100.00 },
-    { id: '838219', accountName: '72619',  invoiceId: null,      closedDate: null,                          dueAmount: null,   paymentAmount: null   },
+    { id: '838215', accountName: '281348', invoiceId: '1610211', closedDate: '16/02/2026 17:09:01 +13:00', dueAmount: 100.00, paymentAmount: 100.00 },
+    { id: '838216', accountName: '72619',  invoiceId: '1606628', closedDate: '16/02/2026 16:09:01 +13:00', dueAmount: 145.00, paymentAmount: 145.00 },
+    { id: '838217', accountName: '281320', invoiceId: '1606575', closedDate: '21/01/2026 15:17:10 +13:00', dueAmount: 100.00, paymentAmount: 100.00 },
+    { id: '838218', accountName: '281314', invoiceId: '1593338', closedDate: '02/01/2026 19:33:02 +13:00', dueAmount: 100.00, paymentAmount: 100.00 },
+    { id: '838219', accountName: '72619',  invoiceId: null,      closedDate: null,                          dueAmount: null,   paymentAmount: 45.96  },
   ],
+  // 796602: $2000.00 payment · $2000.00 alloc · 2 splits (2 invoices, fully allocated)
   '796602': [
-    { id: '838301', accountName: '94070', invoiceId: '1602441', closedDate: '10/02/2026 09:00:00 +13:00', dueAmount: 2000.00, paymentAmount: 2000.00 },
-    { id: '838302', accountName: '94070', invoiceId: null,       closedDate: null,                          dueAmount: null,    paymentAmount: null    },
+    { id: '838301', accountName: '94070', invoiceId: '1602441', closedDate: '10/02/2026 09:00:00 +13:00', dueAmount: 1200.00, paymentAmount: 1200.00 },
+    { id: '838302', accountName: '94070', invoiceId: '1605118', closedDate: '12/02/2026 11:15:00 +13:00', dueAmount: 800.00,  paymentAmount: 800.00  },
   ],
+  // 796605: $28.83 payment · $28.83 alloc · 1 split (1 invoice, fully allocated)
+  '796605': [
+    { id: '838501', accountName: '88201', invoiceId: '1608774', closedDate: '20/01/2026 08:45:00 +13:00', dueAmount: 28.83, paymentAmount: 28.83 },
+  ],
+  // 796604: $20,784.00 payment · $20,727.00 alloc · 6 splits (5 invoices + $57.00 unallocated)
   '796604': [
-    { id: '838401', accountName: '93546', invoiceId: '1598812', closedDate: '05/02/2026 11:30:00 +13:00', dueAmount: 5200.00, paymentAmount: 5200.00 },
-    { id: '838402', accountName: '93546', invoiceId: '1601034', closedDate: '08/02/2026 14:00:00 +13:00', dueAmount: 8000.00, paymentAmount: 8000.00 },
-    { id: '838403', accountName: '93546', invoiceId: '1603210', closedDate: '12/02/2026 10:00:00 +13:00', dueAmount: 4527.00, paymentAmount: 4527.00 },
-    { id: '838404', accountName: '93546', invoiceId: '1603988', closedDate: '14/02/2026 09:00:00 +13:00', dueAmount: 3000.00, paymentAmount: 3000.00 },
+    { id: '838401', accountName: '93546', invoiceId: '1598812', closedDate: '05/02/2026 11:30:00 +13:00', dueAmount: 3000.00, paymentAmount: 3000.00 },
+    { id: '838402', accountName: '93546', invoiceId: '1599105', closedDate: '06/02/2026 09:00:00 +13:00', dueAmount: 2200.00, paymentAmount: 2200.00 },
+    { id: '838403', accountName: '93546', invoiceId: '1601034', closedDate: '08/02/2026 14:00:00 +13:00', dueAmount: 8000.00, paymentAmount: 8000.00 },
+    { id: '838404', accountName: '93546', invoiceId: '1603210', closedDate: '12/02/2026 10:00:00 +13:00', dueAmount: 4527.00, paymentAmount: 4527.00 },
+    { id: '838405', accountName: '93546', invoiceId: '1603988', closedDate: '14/02/2026 09:00:00 +13:00', dueAmount: 3000.00, paymentAmount: 3000.00 },
+    { id: '838406', accountName: '93546', invoiceId: null,      closedDate: null,                          dueAmount: null,    paymentAmount: 57.00   },
+  ],
+  // 796603: $3693.64 payment · $3454.50 alloc · 2 splits (1 invoice + $239.14 unallocated)
+  '796603': [
+    { id: '838601', accountName: '88542', invoiceId: '1607355', closedDate: '28/01/2026 13:22:00 +13:00', dueAmount: 3454.50, paymentAmount: 3454.50 },
+    { id: '838602', accountName: '88542', invoiceId: null,      closedDate: null,                          dueAmount: null,    paymentAmount: 239.14  },
   ],
 };
 
@@ -69,19 +84,59 @@ const RECORD_DETAIL = {
   ],
 };
 
-// Modal invoice lists per record
+// Modal invoice lists per record — selected/allocated must mirror INVOICE_ALLOCS paymentAmounts
 const MODAL_INVOICES = {
   '796601': {
     selected: [
-      { invoiceNumber: '1610211', accountId: '281348', accountName: '281348', outstanding: 100.00, allocated: 0.00 },
+      { invoiceNumber: '1610211', accountId: '281348', accountName: '281348', outstanding: 100.00, allocated: 100.00 },
       { invoiceNumber: '1606628', accountId: '72619',  accountName: '72619',  outstanding: 145.00, allocated: 145.00 },
-      { invoiceNumber: '1606575', accountId: '281320', accountName: '281320', outstanding: 100.00, allocated: 0.00 },
-      { invoiceNumber: '1593338', accountId: '281314', accountName: '281314', outstanding: 100.00, allocated: 0.00 },
+      { invoiceNumber: '1606575', accountId: '281320', accountName: '281320', outstanding: 100.00, allocated: 100.00 },
+      { invoiceNumber: '1593338', accountId: '281314', accountName: '281314', outstanding: 100.00, allocated: 100.00 },
     ],
     available: [
       { invoiceNumber: '1581044', accountId: '281320', accountName: '281320', outstanding: 200.00 },
       { invoiceNumber: '1574892', accountId: '281348', accountName: '281348', outstanding: 50.00  },
       { invoiceNumber: '1568311', accountId: '72619',  accountName: '72619',  outstanding: 75.00  },
+    ],
+  },
+  '796602': {
+    selected: [
+      { invoiceNumber: '1602441', accountId: '94070', accountName: '94070', outstanding: 1200.00, allocated: 1200.00 },
+      { invoiceNumber: '1605118', accountId: '94070', accountName: '94070', outstanding: 800.00,  allocated: 800.00  },
+    ],
+    available: [
+      { invoiceNumber: '1597832', accountId: '94070', accountName: '94070', outstanding: 350.00 },
+      { invoiceNumber: '1591204', accountId: '94070', accountName: '94070', outstanding: 600.00 },
+    ],
+  },
+  '796605': {
+    selected: [
+      { invoiceNumber: '1608774', accountId: '88201', accountName: '88201', outstanding: 28.83, allocated: 28.83 },
+    ],
+    available: [
+      { invoiceNumber: '1601983', accountId: '88201', accountName: '88201', outstanding: 55.00 },
+    ],
+  },
+  '796604': {
+    selected: [
+      { invoiceNumber: '1598812', accountId: '93546', accountName: '93546', outstanding: 3000.00, allocated: 3000.00 },
+      { invoiceNumber: '1599105', accountId: '93546', accountName: '93546', outstanding: 2200.00, allocated: 2200.00 },
+      { invoiceNumber: '1601034', accountId: '93546', accountName: '93546', outstanding: 8000.00, allocated: 8000.00 },
+      { invoiceNumber: '1603210', accountId: '93546', accountName: '93546', outstanding: 4527.00, allocated: 4527.00 },
+      { invoiceNumber: '1603988', accountId: '93546', accountName: '93546', outstanding: 3000.00, allocated: 3000.00 },
+    ],
+    available: [
+      { invoiceNumber: '1596401', accountId: '93546', accountName: '93546', outstanding: 1800.00 },
+      { invoiceNumber: '1590012', accountId: '93546', accountName: '93546', outstanding: 4200.00 },
+    ],
+  },
+  '796603': {
+    selected: [
+      { invoiceNumber: '1607355', accountId: '88542', accountName: '88542', outstanding: 3454.50, allocated: 3454.50 },
+    ],
+    available: [
+      { invoiceNumber: '1598741', accountId: '88542', accountName: '88542', outstanding: 920.00  },
+      { invoiceNumber: '1592300', accountId: '88542', accountName: '88542', outstanding: 1250.00 },
     ],
   },
 };
