@@ -1081,13 +1081,13 @@ export default function PaymentsFlywheelDashboard() {
             <button onClick={() => setShowAllNotes(o => !o)} style={{ ...s.btn, ...(showAllNotes ? s.btnActive : {}) }}>
               Notes
             </button>
-            <button
+            {/* <button
               onClick={() => { setTickerMode(m => m === 'live' ? 'testing' : 'live'); setDiffChecked(false); setDiffItems([]); setDiffVisible(false); }}
               style={{ ...s.btn, ...(tickerMode === 'testing' ? s.btnActive : {}) }}
               title="Toggle ticker between live diffs and stub test data"
             >
               📡 Ticker
-            </button>
+            </button> */}
           </div>
 
           {/* Actions + lock */}
@@ -1107,9 +1107,9 @@ export default function PaymentsFlywheelDashboard() {
         {error && <div style={s.errorBanner}>Error: {error}</div>}
 
         {/* Changes ticker */}
-        {diffVisible && diffItems.length > 0 && (
+        {/* {diffVisible && diffItems.length > 0 && (
           <DiffTicker items={diffItems} />
-        )}
+        )} */}
 
         {/* Hidden tray */}
         {trayOpen && (
